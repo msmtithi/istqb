@@ -217,6 +217,63 @@ class MilvusDB(ABCVectorDB):
 
     async def get_collections(self) -> list[str]:
         return self.client.list_collections()
+    
+    @staticmethod
+    def _build_expr_template_and_params(
+            partition: list[str],
+            filter: dict,
+    ) -> tuple[str, dict]:
+        """
+        Build the expression template and its parameters to be passed to a Milvus query.
+
+        Args:
+            partition (list[str]): The partitions.
+            filter (dict): The filters to be applied to the query.
+
+        Returns:
+            (str, dict): the template expression and its parameter dict.
+        
+        Example:
+        >>> partition = ["bob.localhost"]
+        >>> filter = dict(file_id="a3b2c1", custom_param=314)
+        >>> expr, params = MilvusDB._build_expr_template_and_params(partition, filter)
+        >>> expr
+        'partition in {partition} and file_id == {file_id} and custom_param == {custom_param}'
+
+        >>> params # Note how parameter values are not converted to str
+        {'partition': ['bob.localhost'], 'file_id': 'a3b2c1', 'custom_param': 314}
+
+        >>> # If there is no filter, the search is run on every document
+        >>> partition = ["all"]
+        >>> filter = dict()
+        >>> expr, params = MilvusDB._build_expr_template_and_params(partition, filter)
+        >>> expr
+        ''
+
+        >>> params
+        {}
+
+        """
+        assert isinstance(partition, list), "`partition` must be a list of partition names"
+
+        expr_parts = []
+        expr_params = {}
+
+        if partition != ["all"]:
+            expr_parts.append("partition in {partition}")
+            expr_params["partition"] = partition
+
+        for key, value in filter.items():
+            # This template parameter name is valid since `key` must be
+            # a valid database field name
+            value_template_param_name = key
+            expr_parts.append(
+                f"{key} == {{{value_template_param_name}}}"
+            )
+            expr_params[value_template_param_name] = value
+
+        expr = " and ".join(expr_parts)
+        return expr, expr_params
 
     async def async_search(
         self,
@@ -243,18 +300,7 @@ class MilvusDB(ABCVectorDB):
             ValueError: If the specified collection does not exist.
         """
 
-        expr_parts = []
-        filter_params = {}
-
-        if partition != ["all"]:
-            expr_parts.append("partition in {partition}")
-            filter_params["partition"] = partition
-
-        for key, value in filter.items():
-            expr_parts.append(f"{key} == {{value}}")
-            filter_params[value] = str(value)
-
-        expr = " and ".join(expr_parts)
+        expr, expr_params = MilvusDB._build_expr_template_and_params(partition, filter)
 
         SEARCH_PARAMS = [
             {
@@ -279,7 +325,7 @@ class MilvusDB(ABCVectorDB):
                 ranker_params={"k": 100},
                 expr=expr,
                 param=SEARCH_PARAMS,
-                expr_params=filter_params,
+                expr_params=expr_params,
             )
         else:
             docs_scores = (
@@ -288,7 +334,7 @@ class MilvusDB(ABCVectorDB):
                     k=top_k,
                     score_threshold=similarity_threshold,
                     expr=expr,
-                    expr_params=filter_params,
+                    expr_params=expr_params,
                 )
             )
 
@@ -621,6 +667,8 @@ class MilvusDB(ABCVectorDB):
             expr_params = {"partition": partition, "file_ids": file_ids}
 
             ids = []
+            # NOTE: internal naming in pymilvus is inconsistent. the uses of `filter`
+            # and `expr` prefixes are mixed since `expr_params` is undocumented
             iterator = self.client.query_iterator(
                 collection_name=self.collection_name,
                 filter=filter_expression,
