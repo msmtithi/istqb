@@ -8,8 +8,6 @@ import httpx
 from chainlit.context import get_context
 from openai import AsyncOpenAI
 from utils.logger import get_logger
-from chainlit.server import get_user_facing_url
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -131,9 +129,6 @@ async def __format_sources(metadata_sources, only_txt=False):
     for i, s in enumerate(metadata_sources):
         filename = Path(s["filename"])
         file_url = s["file_url"]
-        logger.debug(
-            "Processing source", filename=filename, file_url=file_url, page=s["page"]
-        )
         page = s["page"]
         source_name = f"{filename}" + (
             f" (page: {page})"
