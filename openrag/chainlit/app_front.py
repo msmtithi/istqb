@@ -8,6 +8,7 @@ import httpx
 from chainlit.context import get_context
 from openai import AsyncOpenAI
 from utils.logger import get_logger
+from chainlit.server import get_user_facing_url
 
 from dotenv import load_dotenv
 
@@ -55,14 +56,14 @@ if CHAINLIT_AUTH_SECRET:
 def get_base_url():
     try:
         context = get_context()
-        referer = context.session.http_referer
+        referer = context.session.environ.get("HTTP_REFERER", "")
         parsed_url = urlparse(referer)  # Parse the referer URL
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-        return base_url
-    except Exception:
-        logger.exception("Error retrieving Chainlit context")
+    except Exception as e:
+        logger.exception("Error retrieving Chainlit context", error=str(e))
         port = os.environ.get("APP_iPORT", "8080")
-        return f"http://localhost:{port}"  # Default fallback URL
+        base_url = f"http://localhost:{port}"  # Default fallback URL
+    return base_url
 
 
 @cl.set_chat_profiles
@@ -130,8 +131,10 @@ async def __format_sources(metadata_sources, only_txt=False):
     for i, s in enumerate(metadata_sources):
         filename = Path(s["filename"])
         file_url = s["file_url"]
+        logger.debug(
+            "Processing source", filename=filename, file_url=file_url, page=s["page"]
+        )
         page = s["page"]
-
         source_name = f"{filename}" + (
             f" (page: {page})"
             if filename.suffix in [".pdf", ".pptx", ".docx", ".doc"]
