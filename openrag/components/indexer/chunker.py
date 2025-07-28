@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from langchain.chains.combine_documents.reduce import collapse_docs, split_list_of_docs
+from langchain.chains.combine_documents.reduce import collapse_docs
 from langchain_core.documents.base import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate

@@ -18,9 +18,6 @@ from pymilvus import (
     AsyncMilvusClient,
     MilvusException,
     RRFRanker,
-    SearchResult,
-    WeightedRanker,
-    utility,
     Function,
 )
 

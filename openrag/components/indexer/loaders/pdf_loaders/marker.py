@@ -132,7 +132,6 @@ class MarkerWorker:
                 self.logger.exception(
                     "MarkerWorker child process timed out", path=file_path
                 )
-                self.setup_mp()
                 raise
             except Exception:
                 self.logger.exception(
