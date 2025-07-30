@@ -29,22 +29,6 @@ logger = get_logger()
 Base = declarative_base()
 
 
-class FileModel(BaseModel):
-    file_id: str
-    partition: str
-    file_metadata: Dict = {}
-
-
-class BasePartitionModel(BaseModel):
-    partition: str
-    created_at: datetime
-
-
-# In the PartitionModel class
-class PartitionModel(BasePartitionModel):
-    files: List[FileModel] = []
-
-
 class File(Base):
     __tablename__ = "files"
 
