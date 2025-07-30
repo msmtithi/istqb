@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from langchain.chains.combine_documents.reduce import collapse_docs, split_list_of_docs
+from langchain.chains.combine_documents.reduce import collapse_docs
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_core.documents.base import Document
 from langchain_core.output_parsers import StrOutputParser
@@ -18,18 +18,16 @@ from omegaconf import OmegaConf
 from tqdm.asyncio import tqdm
 from utils.logger import get_logger
 
-from ..utils import llmSemaphore, load_config, load_sys_template
+from ...utils import llmSemaphore, load_config, load_sys_template
+from .utills import _get_token_length, split_md_elements, combine_chunks
+from operator import attrgetter
+
 
 logger = get_logger()
 config = load_config()
 prompt_paths = Path(config.paths.get("prompts_dir"))
 chunk_contextualizer_pmpt = config.prompt.get("chunk_contextualizer_pmpt")
 CHUNK_CONTEXTUALIZER = load_sys_template(prompt_paths / chunk_contextualizer_pmpt)
-
-
-def _get_token_length(llm: ChatOpenAI, documents: list[Document]) -> int:
-    """Calculate the total number of tokens in a list of documents."""
-    return sum(llm.get_num_tokens(doc.page_content) for doc in documents)
 
 
 class BaseChunker(ABC):
@@ -155,7 +153,7 @@ class BaseChunker(ABC):
         return {"start_page": start_page, "end_page": end_page}
 
     @abstractmethod
-    async def split_document(self, doc: Document, task_id: str = None):
+    async def split_document(self, docs: list[Document], task_id: str = None):
         pass
 
 
@@ -167,6 +165,9 @@ class RecursiveSplitter(BaseChunker):
 
         from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -174,6 +175,23 @@ class RecursiveSplitter(BaseChunker):
             if self.llm
             else len(x),
         )
+
+    def _add_overlap(self, chunks: list[tuple[str, str]]) -> list[str]:
+        overlap_chars = int(self.chunk_overlap * 4)  # Assuming 4 characters per token
+        chunk_l = []
+        for i, (chunk_type, chunk) in enumerate(chunks):
+            if chunk_type != "text" and i > 0:
+                prev_chunk_type, prev_chunk = chunks[i - 1]
+                if prev_chunk_type == "text":
+                    # Add overlap from previous text chunk
+                    overlap = (
+                        prev_chunk[-overlap_chars:]
+                        if len(prev_chunk) > overlap_chars
+                        else prev_chunk
+                    )
+                    chunk = f"{overlap}\n{chunk}"
+            chunk_l.append((chunk_type, chunk))
+        return chunk_l
 
     async def split_document(self, doc: Document, task_id: str = None):
         metadata = doc.metadata
@@ -184,10 +202,29 @@ class RecursiveSplitter(BaseChunker):
         )
         log.info("Starting document chunking")
         source = metadata["source"]
+
+        # Split the document into chunks of text, tables, and images
         all_content = doc.page_content.strip()
-        chunks = self.splitter.split_text(all_content)
+        splits = split_md_elements(all_content)
+
+        # Add overlap to image and table chunks
+        splits = self._add_overlap(splits)
+
+        # only split text elements into chunks
+        chunks = []
+        for chunk_type, content in splits:
+            if chunk_type == "text":
+                chunks.extend(self.splitter.split_text(content))
+            else:
+                chunks.append(content)
+
+        # regrouping chunks based on token length
+        chunks = combine_chunks(
+            chunks=chunks, llm=self.llm, chunk_max_size=self.chunk_size
+        )
 
         chunks_w_context = chunks  # Default to original chunks if no contextualization
+
         if self.contextual_retrieval:
             log.info("Contextualizing chunks")
             chunks_w_context = await self._contextualize_chunks(chunks, source=source)
@@ -235,6 +272,25 @@ class SemanticSplitter(BaseChunker):
             min_chunk_size=min_chunk_size,
         )
 
+        self.chunk_size = 512
+        self.chunk_overlap = 100
+
+    def _add_overlap(self, chunks: list[tuple[str, str]]) -> list[str]:
+        overlap_chars = int(self.chunk_overlap * 4)  # Assuming 4 characters per token
+        chunk_l = []
+        for i, (chunk_type, chunk) in enumerate(chunks):
+            prev_chunk_type, prev_chunk = chunks[i - 1]
+            if prev_chunk_type == "text":
+                # Add overlap from previous text chunk
+                overlap = (
+                    prev_chunk[-overlap_chars:]
+                    if len(prev_chunk) > overlap_chars
+                    else prev_chunk
+                )
+                chunk = f"{overlap}\n{chunk}"
+            chunk_l.append((chunk_type, chunk))
+        return chunk_l
+
     async def split_document(self, doc: Document, task_id: str = None):
         metadata = doc.metadata
         log = logger.bind(
@@ -244,8 +300,26 @@ class SemanticSplitter(BaseChunker):
         )
         log.info("Starting document chunking")
         source = metadata["source"]
+
+        # Split the document into chunks of text, tables, and images
         all_content = doc.page_content.strip()
-        chunks = self.splitter.split_text([all_content])
+        splits = split_md_elements(all_content)
+
+        # Add overlap to text, image and table chunks (Here subsequent 'text' chunks from semantic chunking are not overlapped)
+        splits = self._add_overlap(splits)
+
+        # only split text elements into chunks
+        chunks = []
+        for chunk_type, content in splits:
+            if chunk_type == "text":
+                chunks.extend(self.splitter.split_text(content))
+            else:
+                chunks.append(content)
+
+        # regrouping chunks based on token length
+        chunks = combine_chunks(
+            chunks=chunks, llm=self.llm, chunk_max_size=self.chunk_size
+        )
 
         chunks_w_context = chunks  # Default to original chunks if no contextualization
         if self.contextual_retrieval:
@@ -284,7 +358,7 @@ class MarkDownSplitter(BaseChunker):
             ("#", "Header 1"),
             ("##", "Header 2"),
             ("###", "Header 3"),
-            ("####", "Header 4"),
+            # ("####", "Header 4"),
         ]
         self.md_header_splitter = MarkdownHeaderTextSplitter(
             headers_to_split_on=headers_to_split_on,
@@ -297,69 +371,41 @@ class MarkDownSplitter(BaseChunker):
             length_function=lambda x: self.llm.get_num_tokens(x),
         )
 
-    def _split_list_of_docs(
-        self, docs: list[Document], token_max: int
-    ) -> list[list[Document]]:
-        doc_n_tokens = map(
-            lambda doc: _get_token_length(llm=self.llm, documents=[doc]), docs
-        )
+        self.chunk_overlap = chunk_overlap
 
-        # regroup subsequent chunks based if the total length is less than token_max
-        grouped_docs = []
-        current_group = []
-        current_length = 0
-
-        for doc, n_tokens in zip(docs, doc_n_tokens):
-            if current_length + n_tokens > token_max:
-                if current_group:
-                    grouped_docs.append(current_group)
-                current_group = [doc]
-                current_length = n_tokens
-            else:
-                current_group.append(doc)
-                current_length += n_tokens
-
-        if current_group:
-            grouped_docs.append(current_group)
-
-        return grouped_docs
-
-    def split_text(self, text: str) -> list[str]:
+    def split_md_chunks(self, text: str) -> list[str]:
         # split the text into chunks based on headers
         splits: list[Document] = self.md_header_splitter.split_text(text)
 
         # regrouping chunks based on token length
-        docs_2_merge = self._split_list_of_docs(docs=splits, token_max=self.chunk_size)
+        combined_elements = combine_chunks(
+            chunks=splits, llm=self.llm, chunk_max_size=self.chunk_size
+        )
 
-        splits = []
-        for doc_list in docs_2_merge:
-            collapsed_content = collapse_docs(
-                doc_list,
-                combine_document_func=lambda x: "\n".join(
-                    [d.page_content for d in x]
-                ),  # TODO '\n' or ''
-            )
-            splits.append(collapsed_content)
+        # use recussive splitter to further split the chunks (this would add overlapping between text chunks)
+        overlapped_elements = list(
+            map(lambda x: self.recurive_splitter.split_text(x), combined_elements)
+        )
+        return sum(overlapped_elements, [])
 
-        # add overlap to each chunk
-        md_splits_w_overlap = [None] * len(splits)
-        md_splits_w_overlap[0] = splits[0]  # first chunk remains unchanged
-        if self.overlap > 0 and len(splits) > 1:
-            for i in range(1, len(splits)):
-                previous_chunk = splits[i - 1]  # current chunk
-                current_chunk = splits[i]  # next chunk
+    def _add_overlap(self, chunks: list[tuple[str, str]]) -> list[str]:
+        """Adds overlapping text for image and table chunks."""
 
-                # 1 token = 0.75 words on average
-                overlap_in_words = int(self.overlap * 0.75)
-                previous_chunk_content = previous_chunk.page_content
-                overlap = previous_chunk_content.split()[-overlap_in_words:]
-                overlap = " ".join(overlap)  # convert back to string
-
-                current_chunk.page_content = f"{overlap}\n{current_chunk.page_content}"
-                md_splits_w_overlap[i] = current_chunk
-
-        splits = self.recurive_splitter.split_documents(md_splits_w_overlap)
-        return [s.page_content for s in splits]
+        overlap_chars = int(self.chunk_overlap * 4)  # Assuming 4 characters per token
+        chunk_l = []
+        for i, (chunk_type, chunk) in enumerate(chunks):
+            if chunk_type != "text" and i > 0:
+                prev_chunk_type, prev_chunk = chunks[i - 1]
+                if prev_chunk_type == "text":
+                    # Add overlap from previous text chunk
+                    overlap = (
+                        prev_chunk[-overlap_chars:]
+                        if len(prev_chunk) > overlap_chars
+                        else prev_chunk
+                    )
+                    chunk = f"{overlap}\n{chunk}"
+            chunk_l.append((chunk_type, chunk))
+        return chunk_l
 
     async def split_document(self, doc: Document, task_id: str = None):
         metadata = doc.metadata
@@ -370,8 +416,21 @@ class MarkDownSplitter(BaseChunker):
         )
         log.info("Starting document chunking")
         source = metadata["source"]
+
+        # Split the document into chunks of text, tables, and images
         all_content = doc.page_content.strip()
-        chunks = self.split_text(all_content)
+        splits = split_md_elements(all_content)
+
+        # Add overlap to image and table chunks
+        splits = self._add_overlap(splits)
+
+        # only split text elements into chunks
+        chunks = []
+        for chunk_type, content in splits:
+            if chunk_type == "text":
+                chunks.extend(self.split_md_chunks(content))
+            else:
+                chunks.append(content)
 
         chunks_w_context = chunks  # Default to original chunks if no contextualization
         if self.contextual_retrieval:
@@ -411,16 +470,12 @@ class ChunkerFactory:
         config: OmegaConf,
         embedder: Optional[HuggingFaceBgeEmbeddings | HuggingFaceEmbeddings] = None,
     ) -> BaseChunker:
-        def create_chunker(
-            config: OmegaConf,
-            embedder: Optional[HuggingFaceBgeEmbeddings | HuggingFaceEmbeddings] = None,
-        ) -> BaseChunker:
-            """
-            Create and initialize a chunker based on the provided configuration.
-            Args:
-                config (OmegaConf): Configuration object containing chunker parameters.
-                embedder (Optional[HuggingFaceBgeEmbeddings | HuggingFaceEmbeddings]): Optional embedder to be used if the chunker type is 'semantic_splitter'.
-            """
+        """
+        Create and initialize a chunker based on the provided configuration.
+        Args:
+            config (OmegaConf): Configuration object containing chunker parameters.
+            embedder (Optional[HuggingFaceBgeEmbeddings | HuggingFaceEmbeddings]): Optional embedder to be used if the chunker type is 'semantic_splitter'.
+        """
 
         # Extract parameters
         chunker_params = OmegaConf.to_container(config.chunker, resolve=True)

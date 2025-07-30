@@ -28,7 +28,7 @@ class PyMuPDFLoader(BaseLoader):
             metadata=metadata,
         )
         if save_markdown:
-            self.save_document(doc, str(file_path))
+            self.save_content(s, str(file_path))
         return doc
 
 
@@ -52,5 +52,5 @@ class PyMuPDF4LLMLoader(BaseLoader):
 
         doc = Document(page_content=s, metadata=metadata)
         if save_markdown:
-            self.save_document(doc, str(file_path))
+            self.save_content(s, str(file_path))
         return doc

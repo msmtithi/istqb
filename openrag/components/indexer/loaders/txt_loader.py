@@ -53,7 +53,7 @@ class TextLoader(BaseLoader):
 
         # Save if requested
         if save_markdown:
-            self.save_document(doc, str(path))
+            self.save_content(s, str(path))
 
         return doc
 
@@ -172,6 +172,6 @@ class MarkdownLoader(BaseLoader):
 
         if save_markdown:
             logger.debug("Saving processed markdown", path=path)
-            self.save_document(doc, str(path))
+            self.save_content(clean_text, str(path))
 
         return doc
