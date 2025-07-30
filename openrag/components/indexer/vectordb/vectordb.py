@@ -24,6 +24,11 @@ from pymilvus import (
 from .utils import PartitionFileManager
 
 
+from utils.logger import get_logger
+
+logger = get_logger()
+
+
 class BaseVectorDB(ABC):
     """
     Abstract base class for a Vector Database.
@@ -464,11 +469,13 @@ class MilvusDB(BaseVectorDB):
                 reqs=reqs,
                 ranker=RRFRanker(100),
                 output_fields=["*"],
+                limit=top_k,
             )
         else:
             response = await self._async_client.search(
                 collection_name=self.collection_name,
                 output_fields=["*"],
+                limit=top_k,
                 **vector_param,
             )
 
