@@ -16,7 +16,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     declarative_base,
     relationship,
-    selectinload,
     sessionmaker,
 )
 from sqlalchemy_utils import (
@@ -245,11 +244,9 @@ class PartitionFileManager:
             return False
 
     def list_partitions(self):
-        """List all existing partitions - Optimized with selectinload"""
+        """List all existing partitions"""
         with self.Session() as session:
-            partitions = (
-                session.query(Partition).options(selectinload(Partition.files)).all()
-            )
+            partitions = session.query(Partition).all()
             return [partition.to_dict() for partition in partitions]
 
     def get_partition_file_count(self, partition: str):
