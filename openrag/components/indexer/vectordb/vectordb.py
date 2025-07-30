@@ -296,7 +296,7 @@ class MilvusDB(BaseVectorDB):
         return index_params
 
     async def list_collections(self) -> list[str]:
-        return await self._async_client.load_collection(timeout=60)
+        return self._client.list_collections()
 
     async def __embed_documents(self, chunks: list[Document]) -> list[dict]:
         """
