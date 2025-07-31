@@ -3,12 +3,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_core.documents.base import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import (
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
@@ -17,9 +15,9 @@ from omegaconf import OmegaConf
 from tqdm.asyncio import tqdm
 from utils.logger import get_logger
 
+
 from ...utils import llmSemaphore, load_config, load_sys_template
 from .utills import split_md_elements, combine_chunks, add_overlap
-
 
 logger = get_logger()
 config = load_config()
@@ -33,26 +31,35 @@ class BaseChunker(ABC):
 
     def __init__(
         self,
+        chunk_size: int = 200,
+        chunk_overlap_rate: int = 0.2,
+        llm_config: Optional[dict] = None,
         contextual_retrieval: bool = False,
-        llm: Optional[ChatOpenAI] = None,
         **kwargs,
     ):
+        self.chunk_size = chunk_size
+        self.chunk_overlap_rate = chunk_overlap_rate
+        self.chunk_overlap = int(self.chunk_size * self.chunk_overlap_rate)
+
         self.contextual_retrieval = contextual_retrieval
-        self.llm = llm
         self.context_generator = None
         self._page_pattern = re.compile(r"\[PAGE_(\d+)\]")
 
-        if self.contextual_retrieval:
-            if not isinstance(llm, ChatOpenAI):
-                raise ValueError(
-                    "The `llm` should be of type `ChatOpenAI` if contextual_retrieval is `True`"
+        self.llm = ChatOpenAI(**llm_config)
+
+        try:
+            if self.contextual_retrieval:
+                prompt = ChatPromptTemplate.from_template(template=CHUNK_CONTEXTUALIZER)
+                self.context_generator = (
+                    prompt | ChatOpenAI(**llm_config) | StrOutputParser()
+                ).with_retry(
+                    retry_if_exception_type=(Exception,),
+                    wait_exponential_jitter=False,
+                    stop_after_attempt=2,
                 )
-            prompt = ChatPromptTemplate.from_template(template=CHUNK_CONTEXTUALIZER)
-            self.context_generator = (prompt | llm | StrOutputParser()).with_retry(
-                retry_if_exception_type=(Exception,),
-                wait_exponential_jitter=False,
-                stop_after_attempt=2,
-            )
+
+        except Exception as e:
+            raise ValueError("Error with context_generator: {}".format(e))
 
     async def _generate_context(
         self, first_chunks: str, prev_chunk: str, chunk: str, source: str
@@ -102,7 +109,7 @@ class BaseChunker(ABC):
             )
 
             # Format contextualized chunks
-            chunk_format = """Context: {chunk_context}\n\nChunk: {chunk}"""
+            chunk_format = """Context: {chunk_context}\n\nChunk:\n{chunk}"""
             contexts = [
                 chunk_format.format(
                     chunk=chunk, chunk_context=context, source=Path(source).name
@@ -158,17 +165,22 @@ class BaseChunker(ABC):
 class RecursiveSplitter(BaseChunker):
     """RecursiveSplitter splits documents into chunks using recursive character splitting."""
 
-    def __init__(self, chunk_size: int = 200, chunk_overlap: int = 20, **kwargs):
-        super().__init__(**kwargs)
-
+    def __init__(
+        self,
+        chunk_size=200,
+        chunk_overlap_rate=0.2,
+        llm_config=None,
+        contextual_retrieval=False,
+        **kwargs,
+    ):
+        super().__init__(
+            chunk_size, chunk_overlap_rate, llm_config, contextual_retrieval, **kwargs
+        )
         from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-
         self.splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
             length_function=lambda x: self.llm.get_num_tokens(x)
             if self.llm
             else len(x),
@@ -242,33 +254,37 @@ class SemanticSplitter(BaseChunker):
 
     def __init__(
         self,
-        min_chunk_size: int = 1000,
-        embeddings=None,
-        breakpoint_threshold_amount=85,
-        **kwargs,
+        chunk_size=200,
+        chunk_overlap_rate=0.2,
+        llm_config=None,
+        contextual_retrieval=False,
+        embeddings: Optional[OpenAIEmbeddings] = None,
+        breakpoint_threshold_amount: int = 85,
     ):
-        super().__init__(**kwargs)
-
+        super().__init__(
+            chunk_size, chunk_overlap_rate, llm_config, contextual_retrieval
+        )
         from langchain_experimental.text_splitter import SemanticChunker
+
+        min_chunk_size_chars = (
+            int(chunk_size * 0.5) * 4
+        )  # 1 token = 4 characters on average
 
         self.semantic_splitter = SemanticChunker(
             embeddings=embeddings,
             buffer_size=1,
             breakpoint_threshold_type="percentile",
             breakpoint_threshold_amount=breakpoint_threshold_amount,
-            min_chunk_size=min_chunk_size,
+            min_chunk_size=min_chunk_size_chars,
         )
 
         self.recursive_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=512,
-            chunk_overlap=100,
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
             length_function=lambda x: self.llm.get_num_tokens(x)
             if self.llm
             else len(x),
         )
-
-        self.chunk_size = 512
-        self.chunk_overlap = 100
 
     def split_text(self, text: str):
         # split sematically meaningful chunks
@@ -315,11 +331,6 @@ class SemanticSplitter(BaseChunker):
             chunks=chunks, llm=self.llm, chunk_max_size=self.chunk_size
         )
 
-        # regrouping chunks based on token length
-        chunks = combine_chunks(
-            chunks=chunks, llm=self.llm, chunk_max_size=self.chunk_size
-        )
-
         chunks_w_context = chunks  # Default to original chunks if no contextualization
         if self.contextual_retrieval:
             log.info("Contextualizing chunks")
@@ -347,12 +358,17 @@ class SemanticSplitter(BaseChunker):
 
 
 class MarkDownSplitter(BaseChunker):
-    def __init__(self, chunk_size: int = 200, chunk_overlap: int = 20, **kwargs):
-        super().__init__(**kwargs)
-
-        self.chunk_size = chunk_size
-        self.overlap = chunk_overlap
-
+    def __init__(
+        self,
+        chunk_size=200,
+        chunk_overlap_rate=0.2,
+        llm_config=None,
+        contextual_retrieval=False,
+        **kwargs,
+    ):
+        super().__init__(
+            chunk_size, chunk_overlap_rate, llm_config, contextual_retrieval, **kwargs
+        )
         headers_to_split_on = [
             ("#", "Header 1"),
             ("##", "Header 2"),
@@ -364,13 +380,11 @@ class MarkDownSplitter(BaseChunker):
             strip_headers=False,
         )
 
-        self.recurive_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+        self.recursive_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
             length_function=lambda x: self.llm.get_num_tokens(x),
         )
-
-        self.chunk_overlap = chunk_overlap
 
     def split_md_chunks(self, text: str) -> list[str]:
         # split the text into chunks based on headers
@@ -459,33 +473,29 @@ class ChunkerFactory:
     @staticmethod
     def create_chunker(
         config: OmegaConf,
-        embedder: Optional[HuggingFaceBgeEmbeddings | HuggingFaceEmbeddings] = None,
+        embedder: Optional[OpenAIEmbeddings] = None,
     ) -> BaseChunker:
-        """
-        Create and initialize a chunker based on the provided configuration.
-        Args:
-            config (OmegaConf): Configuration object containing chunker parameters.
-            embedder (Optional[HuggingFaceBgeEmbeddings | HuggingFaceEmbeddings]): Optional embedder to be used if the chunker type is 'semantic_splitter'.
-        """
-
         # Extract parameters
         chunker_params = OmegaConf.to_container(config.chunker, resolve=True)
         name = chunker_params.pop("name")
 
         # Initialize and return the chunker
-        chunker_class: BaseChunker = ChunkerFactory.CHUNKERS.get(name)
-        if not chunker_class:
-            raise ValueError(f"Chunker '{name}' is not recognized.")
+        chunker_cls: BaseChunker = ChunkerFactory.CHUNKERS.get(name)
+
+        if not chunker_cls:
+            raise ValueError(
+                f"Chunker '{name}' is not recognized."
+                f" Available chunkers: {list(ChunkerFactory.CHUNKERS.keys())}"
+            )
 
         # Add embeddings if semantic splitter is selected
         if name == "semantic_splitter":
-            if embedder is not None:
-                chunker_params.update({"embeddings": embedder})
-            else:
-                raise AttributeError(
-                    f"{name} type chunker requires the `embedder` parameter"
-                )
+            embedder = OpenAIEmbeddings(
+                model=config.embedder.get("model_name"),
+                base_url=config.embedder.get("base_url"),
+                api_key=config.embedder.get("api_key"),
+            )
+            chunker_params["embeddings"] = embedder
 
-        # Include contextual retrieval if specified
-        chunker_params["llm"] = ChatOpenAI(**config.vlm)
-        return chunker_class(**chunker_params)
+        chunker_params["llm_config"] = config.vlm
+        return chunker_cls(**chunker_params)
