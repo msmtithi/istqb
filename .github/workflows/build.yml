@@ -1,9 +1,5 @@
 name: Build and Release
 
-permissions:
-  packages: write
-  contents: read
-
 on:
   push:
     tags: ["v*"]
