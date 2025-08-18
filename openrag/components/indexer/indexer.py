@@ -10,9 +10,9 @@ import ray
 import torch
 from config import load_config
 from langchain_core.documents.base import Document
-from langchain_openai import OpenAIEmbeddings
 
 from .chunker import BaseChunker, ChunkerFactory
+# from .chunkers import BaseChunker, ChunkerFactory
 
 config = load_config()
 save_uploaded_files = os.environ.get("SAVE_UPLOADED_FILES", "true").lower() == "true"
@@ -39,18 +39,10 @@ class Indexer:
         self.config = load_config()
         self.logger = get_logger()
 
-        self.embedder = OpenAIEmbeddings(
-            model=self.config.embedder.get("model_name"),
-            base_url=self.config.embedder.get("base_url"),
-            api_key=self.config.embedder.get("api_key"),
-        )
-
         self.serializer_queue = ray.get_actor("SerializerQueue", namespace="openrag")
 
         # Initialize chunker
-        self.chunker: BaseChunker = ChunkerFactory.create_chunker(
-            self.config, embedder=self.embedder
-        )
+        self.chunker: BaseChunker = ChunkerFactory.create_chunker(self.config)
 
         self.vectordb = ray.get_actor("Vectordb", namespace="openrag")
 
@@ -118,8 +110,6 @@ class Indexer:
         log = self.logger.bind(file_id=file_id, partition=partition, task_id=task_id)
         log.info("Queued file for indexing.")
         try:
-            await self.task_state_manager.set_state.remote(task_id, "QUEUED")
-
             # Set task details
             user_metadata = {
                 k: v for k, v in metadata.items() if k not in {"file_id", "source"}

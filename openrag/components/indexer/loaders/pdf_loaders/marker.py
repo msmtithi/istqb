@@ -23,6 +23,7 @@ if torch.cuda.is_available():
 else:  # On CPU
     MARKER_NUM_GPUS = 0
 
+
 @ray.remote(num_gpus=MARKER_NUM_GPUS)
 class MarkerWorker:
     def __init__(self):
@@ -85,7 +86,6 @@ class MarkerWorker:
             initargs=(self.model_dict,),
             maxtasksperchild=self.maxtasksperchild,
         )
-
         self.logger.info("MarkerWorker initialized with multiprocessing pool")
 
     @staticmethod
@@ -106,7 +106,7 @@ class MarkerWorker:
             )
             render = converter(file_path)
             return render
-        except Exception:
+        except Exception as e:
             logger.exception("Error processing PDF", path=file_path)
             raise
         finally:
@@ -132,7 +132,6 @@ class MarkerWorker:
                 self.logger.exception(
                     "MarkerWorker child process timed out", path=file_path
                 )
-                self.setup_mp()
                 raise
             except Exception:
                 self.logger.exception(
@@ -240,7 +239,7 @@ class MarkerLoader(BaseLoader):
             doc = Document(page_content=markdown, metadata=metadata)
 
             if save_markdown:
-                self.save_document(doc, file_path_str)
+                self.save_content(markdown, file_path_str)
 
             duration = time.time() - start
             logger.info(f"Processed {file_path_str} in {duration:.2f}s")
@@ -257,7 +256,7 @@ class MarkerLoader(BaseLoader):
         tasks = []
         keys = []
         for key, picture in img_dict.items():
-            tasks.append(self.get_image_description(image=picture))
+            tasks.append(self.get_image_description(image_data=picture))
             keys.append(key)
 
         try:
