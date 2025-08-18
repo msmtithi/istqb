@@ -42,6 +42,8 @@ dependencies = [
     "psutil>=7.0.0",
     "psycopg2",
     "sqlalchemy_utils",
+    "peft>=0.16.0",
+    "transformers==4.53.0",
 ]
 
 [dependency-groups]
