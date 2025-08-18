@@ -37,8 +37,6 @@ dependencies = [
     "boto3>=1.38.33",
     "eml-parser>=2.0.0",
     "psutil>=7.0.0",
-    "plotly>=6.2.0",
-    "nbformat>=5.10.4",
     "sqlalchemy_utils",
     "psycopg2>=2.9.10",
     "llvmlite>=0.44.0",
@@ -46,11 +44,4 @@ dependencies = [
     "openai-whisper>=20250625",
     "umap-learn>=0.5.9.post2",
     "hdbscan>=0.8.40",
-    "peft>=0.16.0",
-    "transformers==4.53.0",
-]
-
-[dependency-groups]
-dev = [
-    "ruff>=0.11.0",
 ]
