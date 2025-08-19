@@ -31,6 +31,7 @@ from routers.queue import router as queue_router
 from routers.search import router as search_router
 from utils.logger import get_logger
 
+
 logger = get_logger()
 config = load_config()
 DATA_DIR = Path(config.paths.data_dir)

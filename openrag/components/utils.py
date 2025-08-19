@@ -5,7 +5,7 @@ from abc import ABCMeta
 from pathlib import Path
 
 import ray
-from config.config import load_config
+from config import load_config
 from langchain_core.documents.base import Document
 
 # Global variables

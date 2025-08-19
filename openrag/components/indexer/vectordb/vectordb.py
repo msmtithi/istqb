@@ -318,8 +318,7 @@ class MilvusDB(BaseVectorDB):
 
     @staticmethod
     def _build_expr_template_and_params(
-        partition: list[str],
-        filter: dict,
+        partition: list[str], filter: dict
     ) -> tuple[str, dict]:
         """
         Build the expression template and its parameters to be passed to a Milvus query.
@@ -339,7 +338,7 @@ class MilvusDB(BaseVectorDB):
         expr_params = {}
 
         if partition != ["all"]:
-            expr_parts.append("partition in {partition}")
+            expr_parts.append("partition IN {partition}")
             expr_params["partition"] = partition
 
         for key, value in filter.items():
@@ -494,12 +493,14 @@ class MilvusDB(BaseVectorDB):
                 ranker=RRFRanker(100),
                 output_fields=["*"],
                 limit=top_k,
+                expr_params=expr_params,
             )
         else:
             response = await self._async_client.search(
                 collection_name=self.collection_name,
                 output_fields=["*"],
                 limit=top_k,
+                expr_params=expr_params,
                 **vector_param,
             )
 

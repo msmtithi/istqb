@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from config.config import load_config
+from config import load_config
 from fastapi import (
     APIRouter,
     Depends,
