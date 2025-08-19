@@ -1,0 +1,90 @@
+import ray
+from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse
+from ray.util.state import list_actors
+from utils.dependencies import (
+    get_indexer,
+    get_marker_pool,
+    get_serializer_queue,
+    get_task_state_manager,
+    get_vectordb,
+)
+from utils.logger import get_logger
+
+logger = get_logger()
+
+
+router = APIRouter()
+
+actor_creation_map = {
+    "TaskStateManager": get_task_state_manager,
+    "MarkerPool": get_marker_pool,
+    "SerializerQueue": get_serializer_queue,
+    "Indexer": get_indexer,
+    "Vectordb": get_vectordb,
+}
+
+
+@router.get("/", name="list_ray_actors")
+async def list_ray_actors():
+    """List all known Ray actors and their status."""
+    try:
+        actors = [
+            {
+                "actor_id": a.actor_id,
+                "name": a.name,
+                "class_name": a.class_name,
+                "state": a.state,
+                "namespace": a.ray_namespace,
+            }
+            for a in list_actors()
+        ]
+        return JSONResponse(status_code=200, content={"actors": actors})
+    except Exception:
+        logger.exception("Error getting actor summaries")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve actor summaries.",
+        )
+
+
+@router.post("/{actor_name}/restart", name="restart_ray_actor")
+async def restart_actor(
+    actor_name: str,
+):
+    """Restart a specific Ray actor by name (kill + recreate)."""
+    if actor_name not in actor_creation_map:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown actor: {actor_name}"
+        )
+
+    try:
+        # Kill existing actor (if alive)
+        actor = ray.get_actor(actor_name, namespace="openrag")
+        ray.kill(actor, no_restart=True)
+        logger.info(f"Killed actor: {actor_name}")
+    except ValueError:
+        logger.warning(f"Actor {actor_name} not found. Creating new instance.")
+    except Exception as e:
+        logger.exception(f"Failed to kill actor {actor_name}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to kill actor {actor_name}: {str(e)}",
+        )
+
+    try:
+        new_actor = actor_creation_map[actor_name]()
+        logger.info(f"Restarted actor: {actor_name}")
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": f"Actor {actor_name} restarted successfully.",
+                "actor_name": actor_name,
+                "actor_id": new_actor._actor_id.hex(),  # optional
+            },
+        )
+    except Exception as e:
+        logger.exception(f"Failed to restart actor {actor_name}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to restart actor {actor_name}: {str(e)}"
+        )

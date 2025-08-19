@@ -28,20 +28,20 @@ def get_task_state_manager():
 
 
 def get_serializer_queue():
-    return get_or_create_actor("SerializerQueue", SerializerQueue)
+    return get_or_create_actor("SerializerQueue", SerializerQueue, lifetime="detached")
 
 
 def get_marker_pool():
     if config.loader.file_loaders.get("pdf") == "MarkerLoader":
-        return get_or_create_actor("MarkerPool", MarkerPool)
+        return get_or_create_actor("MarkerPool", MarkerPool, lifetime="detached")
 
 
 def get_indexer():
-    return get_or_create_actor("Indexer", Indexer)
+    return get_or_create_actor("Indexer", Indexer, lifetime="detached")
 
 
 def get_vectordb() -> ABCVectorDB:
-    return get_or_create_actor("Vectordb", MilvusDB)
+    return get_or_create_actor("Vectordb", MilvusDB, lifetime="detached")
 
 
 task_state_manager = get_task_state_manager()
