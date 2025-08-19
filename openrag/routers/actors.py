@@ -1,4 +1,5 @@
 import ray
+from components.utils import get_llm_semaphore, get_vlm_semaphore
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from ray.util.state import list_actors
@@ -22,6 +23,8 @@ actor_creation_map = {
     "SerializerQueue": get_serializer_queue,
     "Indexer": get_indexer,
     "Vectordb": get_vectordb,
+    "llmSemaphore": get_llm_semaphore,
+    "vlmSemaphore": get_vlm_semaphore,
 }
 
 
@@ -74,13 +77,15 @@ async def restart_actor(
 
     try:
         new_actor = actor_creation_map[actor_name]()
+        if "Semaphore" in actor_name:
+            new_actor = new_actor._actor
         logger.info(f"Restarted actor: {actor_name}")
         return JSONResponse(
             status_code=200,
             content={
                 "message": f"Actor {actor_name} restarted successfully.",
                 "actor_name": actor_name,
-                "actor_id": new_actor._actor_id.hex(),  # optional
+                "actor_id": new_actor._actor_id.hex(),
             },
         )
     except Exception as e:

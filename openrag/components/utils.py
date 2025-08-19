@@ -87,7 +87,7 @@ class DistributedSemaphore:
         except ValueError:
             # create new actor if it doesn't exist
             actor = DistributedSemaphoreActor.options(
-                name=name, namespace=namespace
+                name=name, namespace=namespace, lifetime="detached"
             ).remote(max_concurrent_ops)
 
         self._actor = actor
@@ -127,10 +127,19 @@ def format_context(docs: list[Document]) -> str:
     return context
 
 
-# llmSemaphore = LLMSemaphore(max_concurrent_ops=config.semaphore.llm_semaphore)
-llmSemaphore = DistributedSemaphore(
-    name="llmSemaphore", max_concurrent_ops=config.semaphore.llm_semaphore
-)
-vlmSemaphore = DistributedSemaphore(
-    name="vlmSemaphore", max_concurrent_ops=config.semaphore.vlm_semaphore
-)
+def get_llm_semaphore() -> DistributedSemaphore:
+    return DistributedSemaphore(
+        name="llmSemaphore",
+        max_concurrent_ops=config.semaphore.llm_semaphore,
+    )
+
+
+def get_vlm_semaphore() -> DistributedSemaphore:
+    return DistributedSemaphore(
+        name="vlmSemaphore",
+        max_concurrent_ops=config.semaphore.vlm_semaphore,
+    )
+
+
+get_llm_semaphore()
+get_vlm_semaphore()

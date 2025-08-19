@@ -18,8 +18,7 @@ logger = get_logger()
 config = load_config()
 router = APIRouter()
 
-vectordb = get_vectordb()
-ragpipe = RagPipeline(config=config, vectordb=vectordb, logger=logger)
+ragpipe = RagPipeline(config=config, vectordb=get_vectordb(), logger=logger)
 
 
 def get_app_state(request: Request):
@@ -61,7 +60,9 @@ async def check_llm_model_availability(request: Request):
     response_description="A list of available models in OpenAI format",
 )
 async def list_models(
-    app_state=Depends(get_app_state), _: None = Depends(check_llm_model_availability)
+    app_state=Depends(get_app_state),
+    _: None = Depends(check_llm_model_availability),
+    vectordb=Depends(get_vectordb),
 ):
     partitions = await vectordb.list_partitions.remote()
     logger.debug("Listing models", partition_count=len(partitions))
@@ -84,6 +85,7 @@ async def list_models(
 
 
 async def __get_partition_name(model_name, app_state):
+    vectordb = get_vectordb()
     if not model_name.startswith("openrag-"):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
