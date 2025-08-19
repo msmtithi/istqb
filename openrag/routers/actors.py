@@ -42,7 +42,7 @@ async def list_ray_actors():
             }
             for a in list_actors()
         ]
-        return JSONResponse(status_code=200, content={"actors": actors})
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"actors": actors})
     except Exception:
         logger.exception("Error getting actor summaries")
         raise HTTPException(
@@ -81,7 +81,7 @@ async def restart_actor(
             new_actor = new_actor._actor
         logger.info(f"Restarted actor: {actor_name}")
         return JSONResponse(
-            status_code=200,
+            status_code=status.HTTP_200_OK,
             content={
                 "message": f"Actor {actor_name} restarted successfully.",
                 "actor_name": actor_name,
@@ -91,5 +91,6 @@ async def restart_actor(
     except Exception as e:
         logger.exception(f"Failed to restart actor {actor_name}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to restart actor {actor_name}: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to restart actor {actor_name}: {str(e)}",
         )
