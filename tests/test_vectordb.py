@@ -2,7 +2,7 @@ from openrag.components.indexer.vectordb import MilvusDB
 
 
 class TestMilvusDB:
-    def test_complex_templating():
+    def test_complex_templating(self):
         partition = ["bob.localhost"]
         filter = dict(file_id="a3b2c1", custom_param=314)
         expr, params = MilvusDB._build_expr_template_and_params(partition, filter)
@@ -18,7 +18,7 @@ class TestMilvusDB:
             "custom_param": 314,
         }
 
-    def test_templating_no_filter():
+    def test_templating_no_filter(self):
         # If there is no filter, the search is run on every document
         partition = ["all"]
         filter = dict()

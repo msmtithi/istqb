@@ -338,7 +338,7 @@ class MilvusDB(BaseVectorDB):
         expr_params = {}
 
         if partition != ["all"]:
-            expr_parts.append("partition IN {partition}")
+            expr_parts.append("partition in {partition}")
             expr_params["partition"] = partition
 
         for key, value in filter.items():
