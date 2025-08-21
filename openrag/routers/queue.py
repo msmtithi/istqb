@@ -1,7 +1,6 @@
 from collections import Counter
-
-from config.config import load_config
 from fastapi import APIRouter, Depends, Request, status
+from config import load_config
 from fastapi.responses import JSONResponse
 from utils.dependencies import get_task_state_manager
 
@@ -10,6 +9,7 @@ config = load_config()
 
 # Create an APIRouter instance
 router = APIRouter()
+
 
 
 def _format_pool_info(worker_info: dict[str, int]) -> dict[str, int]:
