@@ -3,7 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from config.config import load_config
+import ray
+from config import load_config
 from fastapi import (
     APIRouter,
     Depends,
@@ -31,12 +32,6 @@ LOG_FILE = Path(config.paths.log_dir or "logs") / "app.json"
 # supported file formats or mimetypes
 ACCEPTED_FILE_FORMATS = dict(config.loader["file_loaders"]).keys()
 DICT_MIMETYPES = dict(config.loader["mimetypes"])
-
-
-# Get the TaskStateManager actor
-task_state_manager = get_task_state_manager()
-indexer = get_indexer()
-vectordb = get_vectordb()
 
 # Create an APIRouter instance
 router = APIRouter()
@@ -157,6 +152,9 @@ async def add_file(
     file_id: str = Depends(validate_file_id),
     file: UploadFile = Depends(validate_file_format),
     metadata: dict = Depends(validate_metadata),
+    indexer=Depends(get_indexer),
+    task_state_manager=Depends(get_task_state_manager),
+    vectordb=Depends(get_vectordb),
 ):
     log = logger.bind(file_id=file_id, partition=partition, filename=file.filename)
 
@@ -205,7 +203,7 @@ async def add_file(
 
 
 @router.delete("/partition/{partition}/file/{file_id}")
-async def delete_file(partition: str, file_id: str):
+async def delete_file(partition: str, file_id: str, indexer=Depends(get_indexer)):
     await indexer.delete_file.remote(file_id, partition)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -217,6 +215,9 @@ async def put_file(
     file_id: str = Depends(validate_file_id),
     file: UploadFile = Depends(validate_file_format),
     metadata: dict = Depends(validate_metadata),
+    indexer=Depends(get_indexer),
+    task_state_manager=Depends(get_task_state_manager),
+    vectordb=Depends(get_vectordb),
 ):
     log = logger.bind(file_id=file_id, partition=partition, filename=file.filename)
 
@@ -272,6 +273,8 @@ async def patch_file(
     partition: str,
     file_id: str = Depends(validate_file_id),
     metadata: Optional[Any] = Depends(validate_metadata),
+    indexer=Depends(get_indexer),
+    vectordb=Depends(get_vectordb),
 ):
     metadata["file_id"] = file_id
     await indexer.update_file_metadata.remote(file_id, metadata, partition)
@@ -285,6 +288,7 @@ async def patch_file(
 async def get_task_status(
     request: Request,
     task_id: str,
+    task_state_manager=Depends(get_task_state_manager),
 ):
     # fetch task state
     state = await task_state_manager.get_state.remote(task_id)
@@ -311,7 +315,9 @@ async def get_task_status(
 
 
 @router.get("/task/{task_id}/error")
-async def get_task_error(task_id: str):
+async def get_task_error(
+    task_id: str, task_state_manager=Depends(get_task_state_manager)
+):
     try:
         error = await task_state_manager.get_error.remote(task_id)
         if error is None:
@@ -320,6 +326,8 @@ async def get_task_error(task_id: str):
                 detail=f"No error found for task '{task_id}'.",
             )
         return {"task_id": task_id, "traceback": error.splitlines()}
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -359,3 +367,17 @@ async def get_task_logs(task_id: str, max_lines: int = 100):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")
+
+
+@router.delete("/task/{task_id}", name="cancel_task")
+async def cancel_task(task_id: str, task_state_manager=Depends(get_task_state_manager)):
+    try:
+        obj_ref = await task_state_manager.get_object_ref.remote(task_id)
+        if obj_ref is None:
+            raise HTTPException(404, f"No ObjectRef stored for task {task_id}")
+
+        ray.cancel(obj_ref["ref"], recursive=True)
+        return {"message": f"Cancellation signal sent for task {task_id}"}
+    except Exception as e:
+        logger.exception("Failed to cancel task.")
+        raise HTTPException(status_code=500, detail=str(e))

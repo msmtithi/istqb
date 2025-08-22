@@ -575,7 +575,8 @@ class MilvusDB(BaseVectorDB):
                 )
 
             # Adjust filter expression based on the type of value
-            filter_expression = f"partition == '{partition}' and file_id == '{file_id}'"
+            filter_expression = "partition == {partition} and file_id == {file_id}"
+            filter_params = {"partition": partition, "file_id": file_id}
 
             # Pagination parameters
             offset = 0
@@ -588,6 +589,7 @@ class MilvusDB(BaseVectorDB):
                 response = await self._async_client.query(
                     collection_name=self.collection_name,
                     filter=filter_expression,
+                    filter_params=filter_params,
                     limit=limit,
                     offset=offset,
                 )
@@ -745,18 +747,12 @@ class MilvusDB(BaseVectorDB):
 
     async def delete_partition(self, partition: str):
         log = self.logger.bind(partition=partition)
+        if not self.partition_file_manager.partition_exists(partition):
+            log.debug(f"Partition {partition} does not exist")
+            return False
 
         try:
-            if not self.partition_file_manager.partition_exists(partition):
-                log.debug("Partition not found for deletion")
-                raise VDBDeleteError(
-                    f"Partition `{partition}` not found for deletion",
-                    status_code=404,
-                    collection_name=self.collection_name,
-                    partition=partition,
-                )
-
-            count = await self._async_client.delete(
+            count = self._client.delete(
                 collection_name=self.collection_name,
                 filter=f"partition == '{partition}'",
             )
@@ -810,7 +806,8 @@ class MilvusDB(BaseVectorDB):
                 )
 
             # Create a filter expression for the query
-            filter_expression = f"partition == '{partition}'"
+            filter_expression = "partition == {partition}"
+            expr_params = {"partition": partition}
 
             excluded_keys = ["text"]
             if not include_embedding:
@@ -829,6 +826,7 @@ class MilvusDB(BaseVectorDB):
             iterator = self._client.query_iterator(
                 collection_name=self.collection_name,
                 filter=filter_expression,
+                expr_params=expr_params,
                 batch_size=16000,
                 output_fields=["*"],
             )

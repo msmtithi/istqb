@@ -1,17 +1,20 @@
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
-from utils.dependencies import get_indexer, get_vectordb
+from utils.dependencies import get_vectordb
 from utils.logger import get_logger
 
 logger = get_logger()
 router = APIRouter()
 
-indexer = get_indexer()
-vectordb = get_vectordb()
+
+def _quote_param_value(s: str) -> str:
+    return quote(s, safe="")
 
 
 @router.get("/")
-async def list_existant_partitions():
+async def list_existant_partitions(vectordb=Depends(get_vectordb)):
     try:
         partitions = await vectordb.list_partitions.remote()
         logger.debug(
@@ -29,14 +32,19 @@ async def list_existant_partitions():
 
 
 @router.delete("/{partition}")
-async def delete_partition(partition: str):
+async def delete_partition(partition: str, vectordb=Depends(get_vectordb)):
     await vectordb.delete_partition.remote(partition)
     logger.debug("Partition successfully deleted.")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{partition}")
-async def list_files(request: Request, partition: str, limit: int | None = None):
+async def list_files(
+    request: Request,
+    partition: str,
+    limit: int | None = None,
+    vectordb=Depends(get_vectordb),
+):
     log = logger.bind(partition=partition)
     partition_dict = await vectordb.list_partition_files.remote(
         partition=partition, limit=limit
@@ -49,7 +57,9 @@ async def list_files(request: Request, partition: str, limit: int | None = None)
         return {
             "link": str(
                 request.url_for(
-                    "get_file", partition=partition, file_id=file_dict["file_id"]
+                    "get_file",
+                    partition=_quote_param_value(partition),
+                    file_id=_quote_param_value(file_dict["file_id"]),
                 )
             ),
             **file_dict,
@@ -64,6 +74,7 @@ async def get_file(
     request: Request,
     partition: str,
     file_id: str,
+    vectordb=Depends(get_vectordb),
 ):
     results = await vectordb.get_file_chunks.remote(
         partition=partition, file_id=file_id, include_id=True
@@ -86,7 +97,10 @@ async def get_file(
 
 @router.get("/{partition}/chunks")
 async def list_all_chunks(
-    request: Request, partition: str, include_embedding: bool = True
+    request: Request,
+    partition: str,
+    include_embedding: bool = True,
+    vectordb=Depends(get_vectordb),
 ):
     chunks = await vectordb.list_all_chunk.remote(
         partition=partition, include_embedding=include_embedding
