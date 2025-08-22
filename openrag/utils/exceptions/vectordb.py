@@ -7,7 +7,7 @@ class VDBConnectionError(VDBError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="VECTOR_DB_CONNECTION_ERROR",
+            code="VDB_CONNECTION_ERROR",
             status_code=503,
             details=kwargs,
         )
@@ -19,7 +19,7 @@ class VDBCreateOrLoadCollectionError(VDBError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="VECTOR_DB_COLLECTION_ERROR",
+            code="VDB_COLLECTION_ERROR",
             status_code=422,
             details=kwargs,
         )
@@ -31,7 +31,7 @@ class VDBInsertError(VDBError):
     def __init__(self, message: str, status_code: int = 422, **kwargs):
         super().__init__(
             message=message,
-            code="VECTOR_DB_INSERT_ERROR",
+            code="VDB_INSERT_ERROR",
             status_code=status_code,
             details=kwargs,
         )
@@ -43,7 +43,7 @@ class VDBFileIDAlreadyExistsError(VDBError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="VECTOR_DB_FILE_ALREADY_EXISTS",
+            code="VDB_FILE_ALREADY_EXISTS",
             status_code=409,
             details=kwargs,
         )
@@ -60,7 +60,7 @@ class VDBDeleteError(VDBError):
     ):
         super().__init__(
             message=message,
-            code="VECTOR_DB_DELETE_ERROR",
+            code="VDB_DELETE_ERROR",
             status_code=status_code,
             details=kwargs,
         )
@@ -72,7 +72,7 @@ class VDBSearchError(VDBError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="VECTOR_DB_SEARCH_ERROR",
+            code="VDB_SEARCH_ERROR",
             status_code=422,
             details=kwargs,
         )
@@ -84,7 +84,7 @@ class VDBPartitionNotFound(VDBError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="VECTOR_DB_PARTITION_NOT_FOUND",
+            code="VDB_PARTITION_NOT_FOUND",
             status_code=404,
             details=kwargs,
         )
@@ -96,7 +96,7 @@ class VDBFileNotFoundError(VDBError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="VECTOR_DB_FILE_NOT_FOUND",
+            code="VDB_FILE_NOT_FOUND",
             status_code=404,
             details=kwargs,
         )
@@ -108,7 +108,7 @@ class UnexpectedVDBError(VDBError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="UNEXPECTED_VECTOR_DB_ERROR",
+            code="VDB_UNEXPECTED_ERROR",
             status_code=500,
             details=kwargs,
         )

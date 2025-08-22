@@ -31,7 +31,7 @@ class UnexpectedEmbeddingError(EmbeddingError):
     def __init__(self, message: str, **kwargs):
         super().__init__(
             message=message,
-            code="UNEXPECTED_EMBEDDING_ERROR",
+            code="EMBEDDING_UNEXPECTED_ERROR",
             status_code=500,
             details=kwargs,
         )

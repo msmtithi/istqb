@@ -660,16 +660,16 @@ class MilvusDB(BaseVectorDB):
                 )
             return None
         except MilvusException as e:
-            log.exception(f"Milvus query failed: {str(e)}")
+            log.exception("Milvus query failed", error=str(e))
             raise VDBSearchError(
                 f"Milvus query failed: {str(e)}",
                 collection_name=self.collection_name,
             )
 
         except Exception as e:
-            log.exception(f"Couldn't get chunk by ID {chunk_id}", error=str(e))
-            raise VDBSearchError(
-                f"Couldn't get chunk by ID {chunk_id}: {str(e)}",
+            log.exception("Unexpected error while retrieving chunk", error=str(e))
+            raise UnexpectedVDBError(
+                f"Unexpected error while retrieving chunk {chunk_id}: {str(e)}",
                 collection_name=self.collection_name,
             )
 
@@ -851,7 +851,7 @@ class MilvusDB(BaseVectorDB):
             return chunks
 
         except MilvusException as e:
-            self.logger.exception(f"Milvus query failed: {str(e)}")
+            self.logger.exception("Milvus query failed", error=str(e))
             raise VDBSearchError(
                 f"Milvus query failed: {str(e)}",
                 collection_name=self.collection_name,
