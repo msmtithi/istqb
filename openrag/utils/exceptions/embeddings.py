@@ -9,7 +9,7 @@ class EmbeddingAPIError(EmbeddingError):
             message=message,
             code="EMBEDDING_API_ERROR",
             status_code=500,
-            details=kwargs,
+            **kwargs,
         )
 
 
@@ -18,10 +18,7 @@ class EmbeddingResponseError(EmbeddingError):
 
     def __init__(self, message: str, **kwargs):
         super().__init__(
-            message=message,
-            code="EMBEDDING_RESPONSE_ERROR",
-            status_code=422,
-            details=kwargs,
+            message=message, code="EMBEDDING_RESPONSE_ERROR", status_code=422, **kwargs
         )
 
 
@@ -33,5 +30,5 @@ class UnexpectedEmbeddingError(EmbeddingError):
             message=message,
             code="EMBEDDING_UNEXPECTED_ERROR",
             status_code=500,
-            details=kwargs,
+            **kwargs,
         )

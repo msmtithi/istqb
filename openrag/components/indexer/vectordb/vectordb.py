@@ -518,7 +518,7 @@ class MilvusDB(BaseVectorDB):
                     f"File ID {file_id} does not exist in partition {partition}"
                 )
                 raise VDBFileNotFoundError(
-                    f"File ID {file_id} does not exist in partition {partition}",
+                    f"File ID '{file_id}' does not exist in partition {partition}",
                     collection_name=self.collection_name,
                     partition=partition,
                     file_id=file_id,
@@ -565,10 +565,10 @@ class MilvusDB(BaseVectorDB):
                 file_id=file_id, partition=partition
             ):
                 log.exception(
-                    f"File ID {file_id} does not exist in partition {partition}"
+                    f"File ID '{file_id}' does not exist in partition '{partition}'"
                 )
                 raise VDBFileNotFoundError(
-                    f"File ID {file_id} does not exist in partition {partition}",
+                    f"File ID '{file_id}' does not exist in partition '{partition}'",
                     collection_name=self.collection_name,
                     partition=partition,
                     file_id=file_id,
