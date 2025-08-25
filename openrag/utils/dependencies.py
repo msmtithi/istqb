@@ -1,6 +1,5 @@
 import ray
 import ray.actor
-from components import BaseVectorDB
 from components.indexer.indexer import Indexer, TaskStateManager
 from components.indexer.loaders.pdf_loaders.docling2 import DoclingPool
 from components.indexer.loaders.pdf_loaders.marker import MarkerPool
@@ -44,7 +43,7 @@ def get_indexer():
     return get_or_create_actor("Indexer", Indexer, lifetime="detached")
 
 
-def get_vectordb() -> BaseVectorDB:
+def get_vectordb():
     vectordb_cls = ConnectorFactory().get_vectordb_cls()
     return get_or_create_actor("Vectordb", vectordb_cls, lifetime="detached")
 

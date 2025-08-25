@@ -1,7 +1,7 @@
 import json
 from urllib.parse import quote
 
-from components import RagPipeline
+from components.pipeline import RagPipeline
 from config import load_config
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
