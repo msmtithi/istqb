@@ -46,27 +46,28 @@ async def list_files(
     vectordb=Depends(get_vectordb),
 ):
     log = logger.bind(partition=partition)
-    partition_dict = await vectordb.list_partition_files.remote(
+    file_obj_l = await vectordb.list_partition_files.remote(
         partition=partition, limit=limit
     )
-    log.debug(
-        "Listed files in partition", file_count=len(partition_dict.get("files", []))
-    )
+    file_dicts = file_obj_l.get("files", [])
+    log.debug("Listed files in partition", file_count=len(file_dicts))
 
     def process_file(file_dict):
         return {
             "link": str(
                 request.url_for(
                     "get_file",
-                    partition=_quote_param_value(partition),
+                    partition=_quote_param_value(file_dict["partition"]),
                     file_id=_quote_param_value(file_dict["file_id"]),
                 )
             ),
             **file_dict,
         }
 
-    partition_dict["files"] = list(map(process_file, partition_dict.get("files", [])))
-    return JSONResponse(status_code=status.HTTP_200_OK, content=partition_dict)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"files": list(map(process_file, file_dicts))},
+    )
 
 
 @router.get("/{partition}/file/{file_id}")
