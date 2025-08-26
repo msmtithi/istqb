@@ -122,14 +122,7 @@ class PartitionFileManager:
                 log.warning("Partition doesn't exist or has no files")
                 return {}
 
-            # Get total file count and partition info
-            partition_obj = (
-                session.query(Partition).filter_by(partition=partition).first()
-            )
-
             result = {
-                "partition": partition_obj.partition,
-                "created_at": partition_obj.created_at.isoformat(),
                 "files": [file.to_dict() for file in files],
             }
 
