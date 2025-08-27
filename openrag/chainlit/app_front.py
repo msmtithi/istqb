@@ -6,9 +6,9 @@ from urllib.parse import urlparse
 import chainlit as cl
 import httpx
 from chainlit.context import get_context
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from utils.logger import get_logger
-from dotenv import load_dotenv
 
 load_dotenv()
 logger = get_logger()
@@ -107,9 +107,11 @@ async def on_chat_start():
         ) as client:
             response = await client.get(url=f"{base_url}/health_check", headers=headers)
             print(response.text)
-    except Exception:
-        logger.exception("An error occured while checking the API health")
-        logger.warning("Make sur the fastapi is up!!")
+    except Exception as e:
+        logger.exception("An error occured while checking the API health", error=str(e))
+        await cl.Message(
+            content=f"An error occured while checking the API health: {str(e)}"
+        ).send()
     cl.user_session.set("BASE URL", base_url)
 
 
@@ -220,7 +222,7 @@ async def on_message(message: cl.Message):
                 await msg.stream_token(s)
                 await msg.update()
         except Exception as e:
-            logger.exception("Error during chat completion")
+            logger.exception("Error during chat completion", error=str(e))
             await cl.Message(content=f"An error occurred: {str(e)}").send()
 
 

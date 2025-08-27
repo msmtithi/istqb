@@ -103,9 +103,8 @@ def combine_md_elements(
     # Create final output with proper typing
     result = []
     for group in grouped_chunks:
-        combined_content = "\n".join(content for _, content in group)
+        combined_content = "\n\n".join(content for _, content in group).strip()
         if any(t == "text" for t, _ in group):
-            # If any chunk is text, the combined type is text
             result.append(("text", combined_content))
         else:
             chunk_type = group[0][0]
@@ -192,11 +191,7 @@ def add_overlap(
             if add_before and i > 0:
                 prev_chunk_type, prev_chunk = chunks[i - 1]
                 if prev_chunk_type == "text":
-                    prev_overlap = (
-                        prev_chunk[-overlap_chars:]
-                        if len(prev_chunk) > overlap_chars
-                        else prev_chunk
-                    )
+                    prev_overlap = prev_chunk[-overlap_chars:]
                     overlap_parts.append(prev_overlap)
 
             # Add the original chunk
@@ -206,16 +201,10 @@ def add_overlap(
             if add_after and i < len(chunks) - 1:
                 next_chunk_type, next_chunk = chunks[i + 1]
                 if next_chunk_type == "text":
-                    next_overlap = (
-                        next_chunk[:overlap_chars]
-                        if len(next_chunk) > overlap_chars
-                        else next_chunk
-                    )
+                    next_overlap = next_chunk[:overlap_chars]
                     overlap_parts.append(next_overlap)
 
             # Join all parts with newlines
             modified_chunk = "\n".join(overlap_parts)
-
         chunk_l.append((chunk_type, modified_chunk))
-
     return chunk_l
