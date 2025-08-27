@@ -205,6 +205,6 @@ def add_overlap(
                     overlap_parts.append(next_overlap)
 
             # Join all parts with newlines
-            modified_chunk = "\n".join(overlap_parts)
+            modified_chunk = "\n\n".join(overlap_parts)
         chunk_l.append((chunk_type, modified_chunk))
     return chunk_l
