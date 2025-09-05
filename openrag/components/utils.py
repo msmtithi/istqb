@@ -5,7 +5,7 @@ from abc import ABCMeta
 from pathlib import Path
 
 import ray
-from config.config import load_config
+from config import load_config
 from langchain_core.documents.base import Document
 
 # Global variables
@@ -79,27 +79,43 @@ class DistributedSemaphore:
         name: str = "llmSemaphore",
         namespace="openrag",
         max_concurrent_ops: int = 10,
+        lazy: bool = True,
     ):
-        try:
-            actor = ray.get_actor(
-                name, namespace=namespace
-            )  # reuse existing actor if it exists
-        except ValueError:
-            # create new actor if it doesn't exist
-            actor = DistributedSemaphoreActor.options(
-                name=name, namespace=namespace
-            ).remote(max_concurrent_ops)
+        self._actor = None
+        self._name = name
+        self._namespace = namespace
+        self._max_concurrent_ops = max_concurrent_ops
+        self._lazy = lazy
 
-        self._actor = actor
+        if not lazy:
+            self._init_actor()
+
+    def _init_actor(self):
+        if self._actor is None:
+            try:
+                self._actor = ray.get_actor(
+                    self._name, namespace=self._namespace
+                )  # reuse existing actor if it exists
+            except ValueError:
+                # create new actor if it doesn't exist
+                self._actor = DistributedSemaphoreActor.options(
+                    name=self._name, namespace=self._namespace, lifetime="detached"
+                ).remote(self._max_concurrent_ops)
 
     async def __aenter__(self):
+        if self._actor is None:
+            self._init_actor()
         await self._actor.acquire.remote()
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
+        if self._actor is None:
+            self._init_actor()
         await self._actor.release.remote()
 
     def cleanup(self):
+        if self._actor is None:
+            self._init_actor()
         ray.get(self._actor.cleanup.remote())
 
 
@@ -127,10 +143,19 @@ def format_context(docs: list[Document]) -> str:
     return context
 
 
-# llmSemaphore = LLMSemaphore(max_concurrent_ops=config.semaphore.llm_semaphore)
-llmSemaphore = DistributedSemaphore(
-    name="llmSemaphore", max_concurrent_ops=config.semaphore.llm_semaphore
-)
-vlmSemaphore = DistributedSemaphore(
-    name="vlmSemaphore", max_concurrent_ops=config.semaphore.vlm_semaphore
-)
+def get_llm_semaphore() -> DistributedSemaphore:
+    return DistributedSemaphore(
+        name="llmSemaphore",
+        max_concurrent_ops=config.semaphore.llm_semaphore,
+    )
+
+
+def get_vlm_semaphore() -> DistributedSemaphore:
+    return DistributedSemaphore(
+        name="vlmSemaphore",
+        max_concurrent_ops=config.semaphore.vlm_semaphore,
+    )
+
+
+get_llm_semaphore()
+get_vlm_semaphore()

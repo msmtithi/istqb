@@ -3,7 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from config.config import load_config
+import ray
+from config import load_config
 from fastapi import (
     APIRouter,
     Depends,
@@ -31,12 +32,6 @@ LOG_FILE = Path(config.paths.log_dir or "logs") / "app.json"
 # supported file formats or mimetypes
 ACCEPTED_FILE_FORMATS = dict(config.loader["file_loaders"]).keys()
 DICT_MIMETYPES = dict(config.loader["mimetypes"])
-
-
-# Get the TaskStateManager actor
-task_state_manager = get_task_state_manager()
-indexer = get_indexer()
-vectordb = get_vectordb()
 
 # Create an APIRouter instance
 router = APIRouter()
@@ -157,6 +152,9 @@ async def add_file(
     file_id: str = Depends(validate_file_id),
     file: UploadFile = Depends(validate_file_format),
     metadata: dict = Depends(validate_metadata),
+    indexer=Depends(get_indexer),
+    task_state_manager=Depends(get_task_state_manager),
+    vectordb=Depends(get_vectordb),
 ):
     log = logger.bind(file_id=file_id, partition=partition, filename=file.filename)
 
@@ -187,16 +185,12 @@ async def add_file(
     metadata["file_size"] = _human_readable_size(file_stat.st_size)
     metadata["created_at"] = datetime.fromtimestamp(file_stat.st_ctime).isoformat()
     metadata["file_id"] = file_id
-    try:
-        task = indexer.add_file.remote(
-            path=file_path, metadata=metadata, partition=partition
-        )
-        await task_state_manager.set_state.remote(task.task_id().hex(), "QUEUED")
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to queue file for indexing.",
-        )
+
+    # Indexing the file
+    task = indexer.add_file.remote(
+        path=file_path, metadata=metadata, partition=partition
+    )
+    await task_state_manager.set_state.remote(task.task_id().hex(), "QUEUED")
 
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
@@ -209,21 +203,8 @@ async def add_file(
 
 
 @router.delete("/partition/{partition}/file/{file_id}")
-async def delete_file(partition: str, file_id: str):
-    try:
-        deleted = await indexer.delete_file.remote(file_id, partition)
-
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"File '{file_id}' not found in partition '{partition}'.",
-            )
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete file.",
-        )
-
+async def delete_file(partition: str, file_id: str, indexer=Depends(get_indexer)):
+    await indexer.delete_file.remote(file_id, partition)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -234,6 +215,9 @@ async def put_file(
     file_id: str = Depends(validate_file_id),
     file: UploadFile = Depends(validate_file_format),
     metadata: dict = Depends(validate_metadata),
+    indexer=Depends(get_indexer),
+    task_state_manager=Depends(get_task_state_manager),
+    vectordb=Depends(get_vectordb),
 ):
     log = logger.bind(file_id=file_id, partition=partition, filename=file.filename)
 
@@ -243,13 +227,9 @@ async def put_file(
             detail=f"File '{file_id}' not found in partition '{partition}'.",
         )
 
-    try:
-        await indexer.delete_file.remote(file_id, partition)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete existing file.",
-        )
+    # Delete the existing file from the vector database
+    await indexer.delete_file.remote(file_id, partition)
+
     save_dir = Path(DATA_DIR)
     save_dir.mkdir(parents=True, exist_ok=True)
     file_path = save_dir / Path(file.filename).name
@@ -271,16 +251,12 @@ async def put_file(
     metadata["file_size"] = _human_readable_size(file_stat.st_size)
     metadata["created_at"] = datetime.fromtimestamp(file_stat.st_ctime).isoformat()
     metadata["file_id"] = file_id
-    try:
-        task = indexer.add_file.remote(
-            path=file_path, metadata=metadata, partition=partition
-        )
-        await task_state_manager.set_state.remote(task.task_id().hex(), "QUEUED")
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to queue file for indexing.",
-        )
+
+    # Indexing the file
+    task = indexer.add_file.remote(
+        path=file_path, metadata=metadata, partition=partition
+    )
+    await task_state_manager.set_state.remote(task.task_id().hex(), "QUEUED")
 
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
@@ -297,23 +273,11 @@ async def patch_file(
     partition: str,
     file_id: str = Depends(validate_file_id),
     metadata: Optional[Any] = Depends(validate_metadata),
+    indexer=Depends(get_indexer),
+    vectordb=Depends(get_vectordb),
 ):
-    if not await vectordb.file_exists.remote(file_id, partition):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File '{file_id}' not found in partition '{partition}'.",
-        )
-
     metadata["file_id"] = file_id
-
-    try:
-        await indexer.update_file_metadata.remote(file_id, metadata, partition)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update metadata : {str(e)}",
-        )
-
+    await indexer.update_file_metadata.remote(file_id, metadata, partition)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"Metadata for file '{file_id}' successfully updated."},
@@ -324,6 +288,7 @@ async def patch_file(
 async def get_task_status(
     request: Request,
     task_id: str,
+    task_state_manager=Depends(get_task_state_manager),
 ):
     # fetch task state
     state = await task_state_manager.get_state.remote(task_id)
@@ -350,7 +315,9 @@ async def get_task_status(
 
 
 @router.get("/task/{task_id}/error")
-async def get_task_error(task_id: str):
+async def get_task_error(
+    task_id: str, task_state_manager=Depends(get_task_state_manager)
+):
     try:
         error = await task_state_manager.get_error.remote(task_id)
         if error is None:
@@ -359,6 +326,8 @@ async def get_task_error(task_id: str):
                 detail=f"No error found for task '{task_id}'.",
             )
         return {"task_id": task_id, "traceback": error.splitlines()}
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -398,3 +367,17 @@ async def get_task_logs(task_id: str, max_lines: int = 100):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")
+
+
+@router.delete("/task/{task_id}", name="cancel_task")
+async def cancel_task(task_id: str, task_state_manager=Depends(get_task_state_manager)):
+    try:
+        obj_ref = await task_state_manager.get_object_ref.remote(task_id)
+        if obj_ref is None:
+            raise HTTPException(404, f"No ObjectRef stored for task {task_id}")
+
+        ray.cancel(obj_ref["ref"], recursive=True)
+        return {"message": f"Cancellation signal sent for task {task_id}"}
+    except Exception as e:
+        logger.exception("Failed to cancel task.")
+        raise HTTPException(status_code=500, detail=str(e))

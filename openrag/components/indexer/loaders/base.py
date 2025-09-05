@@ -1,17 +1,15 @@
-import asyncio
 import base64
 import re
 from abc import ABC, abstractmethod
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, Optional, Union
-from langchain_core.documents.base import Document
+
+from components.utils import get_vlm_semaphore, load_config, load_sys_template
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-from utils.logger import get_logger
 from PIL import Image
-from ...utils import load_config, load_sys_template, vlmSemaphore
-
+from utils.logger import get_logger
 
 logger = get_logger()
 config = load_config()
@@ -73,7 +71,6 @@ class BaseLoader(ABC):
     async def get_image_description(
         self,
         image_data: Union[Image.Image, str],
-        semaphore: asyncio.Semaphore = vlmSemaphore,
     ) -> str:
         """
         Creates a description for an image using the LLM model.
@@ -88,7 +85,7 @@ class BaseLoader(ABC):
         Returns:
             str: Description of the image wrapped in XML tags
         """
-        async with semaphore:
+        async with get_vlm_semaphore():
             try:
                 # Determine the type of image data and create appropriate message content
                 if isinstance(image_data, Image.Image):
@@ -131,10 +128,10 @@ class BaseLoader(ABC):
                             logger.error(
                                 f"Invalid image data type or format: {type(image_data)}"
                             )
-                            return f"""\n<image_description>\nInvalid image data format\n</image_description>\n"""
+                            return """\n<image_description>\nInvalid image data format\n</image_description>\n"""
                     else:
                         logger.error(f"Unsupported image data type: {type(image_data)}")
-                        return f"""\n<image_description>\nUnsupported image data type\n</image_description>\n"""
+                        return """\n<image_description>\nUnsupported image data type\n</image_description>\n"""
 
                 # Create message for LLM
                 message = HumanMessage(
@@ -152,7 +149,9 @@ class BaseLoader(ABC):
                 image_description = response.content
 
             except Exception as e:
-                logger.exception(f"Error while generating image description: {str(e)}")
+                logger.exception(
+                    "Error while generating image description", error=str(e)
+                )
                 image_description = ""
 
             return f"""<image_description>\n{image_description}\n</image_description>"""

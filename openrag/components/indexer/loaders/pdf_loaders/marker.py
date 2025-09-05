@@ -234,7 +234,7 @@ class MarkerLoader(BaseLoader):
             markdown = re.sub(
                 r"\{(\d+)\}" + re.escape(self.page_sep), r"[PAGE_\1]", markdown
             )
-            markdown = markdown.replace("<br>", " <br> ").strip()
+            markdown = markdown.replace("<br>", "").strip()
 
             doc = Document(page_content=markdown, metadata=metadata)
 

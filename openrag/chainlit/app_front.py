@@ -224,7 +224,7 @@ async def on_message(message: cl.Message):
                 await msg.stream_token(s)
                 await msg.update()
         except Exception as e:
-            logger.exception("Error during chat completion")
+            logger.exception("Error during chat completion", error=str(e))
             await cl.Message(content=f"An error occurred: {str(e)}").send()
 
 

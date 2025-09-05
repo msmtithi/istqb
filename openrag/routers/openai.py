@@ -1,8 +1,8 @@
 import json
 from urllib.parse import quote
 
-from components import RagPipeline
-from config.config import load_config
+from components.pipeline import RagPipeline
+from config import load_config
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.documents.base import Document
@@ -18,8 +18,7 @@ logger = get_logger()
 config = load_config()
 router = APIRouter()
 
-vectordb = get_vectordb()
-ragpipe = RagPipeline(config=config, vectordb=vectordb, logger=logger)
+ragpipe = RagPipeline(config=config, logger=logger)
 
 
 def get_app_state(request: Request):
@@ -39,7 +38,7 @@ async def check_llm_model_availability(request: Request):
                     detail=f"Only these models ({available_models}) are available for your `{model_type}`. Please check your configuration file.",
                 )
         except Exception as e:
-            logger.exception(f"Failed to validate model for {model_type}.")
+            logger.exception("Failed to validate model", model=model_type)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Error while checking the `{model_type}` endpoint: {str(e)}",
@@ -61,7 +60,9 @@ async def check_llm_model_availability(request: Request):
     response_description="A list of available models in OpenAI format",
 )
 async def list_models(
-    app_state=Depends(get_app_state), _: None = Depends(check_llm_model_availability)
+    app_state=Depends(get_app_state),
+    _: None = Depends(check_llm_model_availability),
+    vectordb=Depends(get_vectordb),
 ):
     partitions = await vectordb.list_partitions.remote()
     logger.debug("Listing models", partition_count=len(partitions))
@@ -84,6 +85,7 @@ async def list_models(
 
 
 async def __get_partition_name(model_name, app_state):
+    vectordb = get_vectordb()
     if not model_name.startswith("openrag-"):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -154,7 +156,7 @@ async def openai_chat_completion(
     try:
         partition = await __get_partition_name(model_name, app_state)
     except Exception as e:
-        log.warning(f"Invalid model or partition: {e}")
+        log.warning("Invalid model or partition", error=str(e))
         raise
 
     try:
@@ -162,11 +164,11 @@ async def openai_chat_completion(
             partition=[partition], payload=request.model_dump()
         )
         log.debug("RAG chat completion pipeline executed.")
-    except Exception:
-        log.exception("Chat completion failed.")
+    except Exception as e:
+        log.exception("Chat completion failed.", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Chat completion failed.",
+            detail=f"Chat completion failed: {str(e)}",
         )
 
     metadata = __prepare_sources(request2, docs)
@@ -186,8 +188,10 @@ async def openai_chat_completion(
                             data["model"] = model_name
                             data["extra"] = metadata_json
                             yield f"data: {json.dumps(data)}\n\n"
-                        except json.JSONDecodeError:
-                            log.exception("Failed to decode streamed chunk.")
+                        except json.JSONDecodeError as e:
+                            log.exception(
+                                "Failed to decode streamed chunk.", error=str(e)
+                            )
                             raise
 
         return StreamingResponse(stream_response(), media_type="text/event-stream")
@@ -198,11 +202,11 @@ async def openai_chat_completion(
             chunk["extra"] = metadata_json
             log.debug("Returning non-streaming completion chunk.")
             return JSONResponse(content=chunk)
-        except StopAsyncIteration:
-            log.warning("No response from LLM.")
+        except Exception as e:
+            log.warning("Error while generating answer", error=str(e))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No response from LLM",
+                detail=f"Error while generating answer: {str(e)}",
             )
 
 
@@ -256,11 +260,11 @@ async def openai_completion(
             partition=[partition], payload=request.model_dump()
         )
         log.debug("RAG completion pipeline executed.")
-    except Exception:
-        log.exception("Completion request failed.")
+    except Exception as e:
+        log.exception("Completion request failed.", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Completion failed.",
+            detail=f"Completion failed: {str(e)}",
         )
 
     metadata = __prepare_sources(request2, docs)
@@ -271,9 +275,9 @@ async def openai_completion(
         complete_response["extra"] = metadata_json
         log.debug("Returning completion response.")
         return JSONResponse(content=complete_response)
-    except StopAsyncIteration:
-        log.warning("No response from LLM.")
+    except Exception as e:
+        log.warning("No response from LLM.", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No response from LLM",
+            detail=f"No response from LLM: {str(e)}",
         )
