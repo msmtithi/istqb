@@ -102,6 +102,17 @@ services:
       target: vllm-openai
     image: openrag-vllm-openai-cpu
     deploy: {}
+    command: >
+      --model ${EMBEDDER_MODEL_NAME:-jinaai/jina-embeddings-v3}
+      --trust-remote-code
+      --gpu_memory_utilization 0.3
+      --task embed
+      --max-model-len 2048
+      --dtype float32
+# These two flags are required only for arm64:
+# --max-model-len 2048  https://github.com/vllm-project/vllm/issues/21179
+# --dtype float32       https://github.com/vllm-project/vllm/issues/11327
+
     profiles:
       - 'cpu'
 
