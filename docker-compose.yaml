@@ -102,16 +102,18 @@ services:
       target: vllm-openai
     image: openrag-vllm-openai-cpu
     deploy: {}
+    environment:
+      - VLLM_CPU_KVCACHE_SPACE=8
+    # Default value isn't sufficient for full context length
     command: >
       --model ${EMBEDDER_MODEL_NAME:-jinaai/jina-embeddings-v3}
       --trust-remote-code
-      --gpu_memory_utilization 0.3
-      --task embed
-      --max-model-len 2048
       --dtype float32
-# These two flags are required only for arm64:
-# --max-model-len 2048  https://github.com/vllm-project/vllm/issues/21179
-# --dtype float32       https://github.com/vllm-project/vllm/issues/11327
+      --max-num-batched-tokens 32768
+    # dtype is required for aarch64 (https://github.com/vllm-project/vllm/issues/11327) and improves speed on amd64.
+    # max-num-batched-tokens is required for aarch64 because chunked prefill isn't supported by V1 vllm backend
+    # for aarch64 yet. On aarch64 max-num-batched-tokens must be equal max-model-len for now (without chunked prefill).
+    # For details see https://github.com/vllm-project/vllm/issues/21179
 
     profiles:
       - 'cpu'
