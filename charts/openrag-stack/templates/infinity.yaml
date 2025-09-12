@@ -1,18 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: reranker
+  name: {{ .Release.Name }}-reranker
   labels:
-    app: reranker
+    app.kubernetes.io/name: reranker
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: reranker
+      app.kubernetes.io/name: reranker
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: reranker
+        app.kubernetes.io/name: reranker
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       runtimeClassName: nvidia
       containers:
@@ -47,10 +50,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: reranker
+  name: {{ .Release.Name }}-reranker
+  labels:
+    app.kubernetes.io/name: reranker
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   selector:
-    app: reranker
+    app.kubernetes.io/name: reranker
+    app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - protocol: TCP
       port: 7997

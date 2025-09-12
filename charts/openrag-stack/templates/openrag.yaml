@@ -1,18 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "openrag-stack.fullname" . }}
+  name: {{ .Release.Name }}-openrag
   labels:
-    app: openrag
+    app.kubernetes.io/name: openrag
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: openrag
+      app.kubernetes.io/name: openrag
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: openrag
+        app.kubernetes.io/name: openrag
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       initContainers:
         - name: init-venv
@@ -67,10 +70,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "openrag-stack.fullname" . }}
+  name: {{ .Release.Name }}-openrag
+  labels:
+    app.kubernetes.io/name: openrag
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   selector:
-    app: openrag
+    app.kubernetes.io/name: openrag
+    app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - protocol: TCP
       port: {{ .Values.openrag.service.port }}

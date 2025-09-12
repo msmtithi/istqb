@@ -9,8 +9,8 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className | quote }}
   rules:
-    - host: {{ .Values.ingress.host }}
-      http:
+    # - host: {{ .Values.ingress.host }}
+    - http:
         paths:
           {{- if .Values.ingress.paths.openrag.enabled }}
           - path: /(.*)
