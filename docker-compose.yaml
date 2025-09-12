@@ -82,7 +82,7 @@ services:
 
   vllm-gpu:
     <<: *vllm_template
-    image: vllm/vllm-openai:latest
+    image: vllm/vllm-openai:v0.9.2
     runtime: nvidia
     deploy:
       resources:
