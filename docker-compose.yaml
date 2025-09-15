@@ -63,7 +63,7 @@ services:
       - ''
     depends_on:
     - milvus
-    # - vllm-gpu
+    - vllm-gpu
 
   # No GPU
   openrag-cpu:
