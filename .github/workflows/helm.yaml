@@ -3,6 +3,7 @@ name: Publish Helm Chart
 on:
   push:
     branches:
+      - main
       - dev
     paths:
       - "charts/**"
@@ -19,13 +20,28 @@ jobs:
         with:
           version: v3.14.4
 
-      - name: Helm dependency update
+      - name: Set chart version
         run: |
-          helm dependency update charts/openrag-stack
+          BASE_VERSION=$(yq '.version' charts/openrag-stack/Chart.yaml)
+
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            # Keep version as-is for stable
+            CHART_VERSION="$BASE_VERSION"
+          else
+            # Append branch + commit hash for dev builds
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            CHART_VERSION="${BASE_VERSION}-dev-${SHORT_SHA}"
+            yq -i ".version = \"${CHART_VERSION}\"" charts/openrag-stack/Chart.yaml
+          fi
+
+          echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
+          echo "Using chart version: $CHART_VERSION"
+
+      - name: Helm dependency update
+        run: helm dependency update charts/openrag-stack
 
       - name: Package chart
-        run: |
-          helm package charts/openrag-stack --destination .
+        run: helm package charts/openrag-stack --destination .
 
       - name: Login to GHCR
         run: |
@@ -33,5 +49,4 @@ jobs:
 
       - name: Push chart
         run: |
-          CHART_VERSION=$(yq '.version' charts/openrag-stack/Chart.yaml)
           helm push openrag-stack-${CHART_VERSION}.tgz oci://ghcr.io/htagourti
