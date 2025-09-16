@@ -1,0 +1,37 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "charts/**"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Helm dependency update
+        run: |
+          helm dependency update charts/openrag-stack
+
+      - name: Package chart
+        run: |
+          helm package charts/openrag-stack --destination .
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push chart
+        run: |
+          CHART_VERSION=$(yq '.version' charts/openrag-stack/Chart.yaml)
+          helm push openrag-stack-${CHART_VERSION}.tgz oci://ghcr.io/htagourti
