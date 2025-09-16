@@ -15,26 +15,19 @@ This guide explains how to deploy the **OpenRAG** stack on a Kubernetes cluster 
 
 ## Steps
 
-1. **Clone the repository** (if not already done):
-
-   ```bash
-   git clone https://github.com/linagora/openrag.git
-   cd openrag
-   ```
-
-2. **Prepare your `values.yaml` file**:
+1. **Create a `values.yaml` file**:
 
    - Copy or create a new `values.yaml` at the root of your repo.
    - You can see the full example file inside the chart:
      [../charts/openrag-stack/values.yaml](../charts/openrag-stack/values.yaml)
    - Customize the values you need (e.g., image tags, resources, ingress host, storage class, environment variables, secrets).
 
-3. **Set environment and secrets**:
+2. **Set environment and secrets**:
 
    - Edit the `env.config` and `env.secrets` sections in your `values.yaml`.
    - Secrets (API keys, tokens, Hugging Face credentials, etc.) will be mounted into the cluster as Kubernetes secrets.
 
-4. **Update Helm dependencies**:
+3. **Update Helm dependencies** (if using local chart for development):
 
    ```bash
    helm dependency update charts/openrag-stack
@@ -42,15 +35,16 @@ This guide explains how to deploy the **OpenRAG** stack on a Kubernetes cluster 
 
    This will pull in required subcharts (e.g. PostgreSQL, Milvus, vLLM, Infinity reranker).
 
-5. **Install or upgrade the release**:
+4. **Install or upgrade the release from GHCR**:
 
    ```bash
-   helm upgrade --install openrag ./charts/openrag-stack -f ./values.yaml
+   helm upgrade --install openrag oci://ghcr.io/linagora/openrag-stack -f ./values.yaml --version 0.1.0
    ```
 
    - `openrag` is the Helm release name.
-   - `./charts/openrag-stack` is the path to the chart.
+   - `oci://ghcr.io/linagora/openrag-stack` is the remote chart location.
    - `-f ./values.yaml` specifies your custom configuration.
+   - `--version 0.1.0` ensures you deploy a specific chart version.
 
 ---
 
@@ -63,4 +57,3 @@ This guide explains how to deploy the **OpenRAG** stack on a Kubernetes cluster 
 
 - Ensure your GPU nodes have the correct NVIDIA drivers and `nvidia` `RuntimeClass` configured.
 
----
