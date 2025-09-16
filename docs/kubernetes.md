@@ -27,15 +27,7 @@ This guide explains how to deploy the **OpenRAG** stack on a Kubernetes cluster 
    - Edit the `env.config` and `env.secrets` sections in your `values.yaml`.
    - Secrets (API keys, tokens, Hugging Face credentials, etc.) will be mounted into the cluster as Kubernetes secrets.
 
-3. **Update Helm dependencies** (if using local chart for development):
-
-   ```bash
-   helm dependency update charts/openrag-stack
-   ```
-
-   This will pull in required subcharts (e.g. PostgreSQL, Milvus, vLLM, Infinity reranker).
-
-4. **Install or upgrade the release from GHCR**:
+3. **Install or upgrade the release from GHCR**:
 
    ```bash
    helm upgrade --install openrag oci://ghcr.io/linagora/openrag-stack -f ./values.yaml --version 0.1.0

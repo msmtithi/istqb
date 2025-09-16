@@ -47,10 +47,10 @@ WORKDIR /app/openrag
 COPY openrag/ .
 
 # Copy assests & config
-COPY public/ /app/public/
 COPY prompts/ /app/prompts/
 COPY .hydra_config/ /app/.hydra_config/
 
 RUN apt install -y 
+RUN ln -s /app/.venv/bin/ray /usr/local/bin/ray
 
 ENV PYTHONPATH=/app/openrag/
