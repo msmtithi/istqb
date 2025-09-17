@@ -150,6 +150,7 @@ For CPU-only deployments or lightweight testing scenarios, you can consider swit
 
 > ⚠️ **Important**: These alternative loaders have limitations - they cannot process non-searchable (image-based) PDFs and do not extract or handle embedded images.
 </details>
+
 #### 4.Deployment: Launch the app
 
 >[!IMPORTANT]
@@ -180,7 +181,8 @@ Once the app is up and running, visit `http://localhost:APP_PORT` or `http:X.X.X
     > Chainlit UI has no authentication by default. To enable it, follow the [dedicated guide](./docs/setup_chainlit_ui_auth.md). The same goes for chat data persistancy, enable it with this [guide](docs/chainlit_data_persistency.md)
 
 3. `http://localhost:INDEXERUI_PORT` to access the indexer ui for easy document ingestion, indexing, and management
-#### 4. Distributed deployment in a Ray cluster
+
+#### 5. Distributed deployment in a Ray cluster
 
 To scale **OpenRag** in a distributed environment using **Ray**, follow the dedicated guide:
 ➡ [Deploy OpenRag in a Ray cluster](docs/deploy_ray_cluster.md)
