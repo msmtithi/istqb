@@ -16,7 +16,7 @@ git submodule update --init --recursive
 > * Clone the content of each submodule
 > * Recursively initialize and update nested submodules
 
-> \[!IMPORTANT]
+> [!IMPORTANT]
 > Each version of **`openrag`** ships with a specific compatible commit of [indexer-ui](https://github.com/linagora/openrag-admin-ui). The above command is sufficient.
 > In development mode, to fetch the latest version of `indexer-ui`, run:
 
