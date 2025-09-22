@@ -118,7 +118,7 @@ def read_vdb_section(
         collection_name: str,
         added_documents: Dict[str, Set[str]],
         client: MilvusClient,
-        batch_size int,
+        batch_size: int,
         logger: Any,
         verbose: bool = False,
         dry_run: bool = False
