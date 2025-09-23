@@ -37,7 +37,7 @@ def dump_rdb_part(
         # Header
         out_fh.write('rdb\n')
         if verbose:
-            logger.info('Writting rdb data')
+            logger.info('Writing rdb data')
 
         # Partition details
         out_fh.write(json.dumps({ 'name': part_name, 'created': partitions[part_name]['created_at'] }, ensure_ascii=False, sort_keys=True) + '\n')
@@ -102,7 +102,7 @@ def dump_vdb_part(
 
     out_fh.write('vdb\n')
     if verbose:
-        logger.info('Writting vdb data')
+        logger.info('Writing vdb data')
         cnt = 0
 
     while True:
