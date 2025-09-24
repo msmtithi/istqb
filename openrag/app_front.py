@@ -26,7 +26,7 @@ commands = [
     {
         "id": "DeepSearch",
         "icon": "brain-cog",
-        "description": "Use DeepSearch RAG to handle complex queries.\nSlower but more accurate answers.\nUse in an empty context as it consumes more tokens.",
+        "description": "This uses a custom DeepSearch RAG mechanism (Map & Reduce) to handle complex queries.\nSlower but gives accurate answers.\nUse in an empty context as it consumes more tokens.",
     },
 ]
 
