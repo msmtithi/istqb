@@ -188,7 +188,13 @@ For CPU-only deployments or lightweight testing scenarios, you can consider swit
   ```
 
 >[!WARNING]
-> The initial launch is longer due to the installation of required dependencies.
+> The first startup may take longer as required dependencies are installed. 
+
+>[!IMPORTANT]
+> For CPU-only deployments, consider these performance optimizations:
+> 1. Disable the reranker by setting **`RERANKER_ENABLED=false`** (reranking is computationally intensive on CPU)
+> 2. If keeping the reranker enabled (recommended for better RAG accuracy), reduce the number of documents sent for reranking by lowering **`RETRIEVER_TOP_K`** to approximately 10
+
 
 Once the app is up and running, visit `http://localhost:APP_PORT` or `http:X.X.X.X:APP_PORT` to access via:
 
