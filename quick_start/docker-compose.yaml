@@ -5,9 +5,9 @@ include:
 x-openrag: &openrag_template
   # image: ghcr.io/linagora/openrag:dev-latest
   image: linagoraai/openrag:latest
-  # build:
-  #   context: .
-  #   dockerfile: Dockerfile
+  build:
+    context: .
+    dockerfile: Dockerfile
   volumes:
     # - ${CONFIG_VOLUME:-./.hydra_config}:/app/.hydra_config
     - ${DATA_VOLUME:-./data}:/app/data
@@ -132,7 +132,7 @@ services:
       --model ${EMBEDDER_MODEL_NAME:-jinaai/jina-embeddings-v3}
       --trust-remote-code
       --dtype float32
-      --max_model_len 8192
+      --max-model-len ${MAX_MODEL_LEN:-8192}
     # --max-num-batched-tokens 16384
     # dtype is required for aarch64 (https://github.com/vllm-project/vllm/issues/11327) and improves speed on amd64.
     # max-num-batched-tokens is required for aarch64 because chunked prefill isn't supported by V1 vllm backend
