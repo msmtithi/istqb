@@ -9,7 +9,6 @@ title: Indexer UI
 > Ensure the `indexer-ui` submodule is initialized and downloaded. If not, run the following command from the root of your `openrag` project:
 
 ```bash
-// .env
 cd <project-name> # openrag project
 git submodule update --init --recursive
 ```
@@ -22,7 +21,7 @@ The `--init --recursive` flags will:
 * Recursively initialize and update nested submodules
 :::
 
-:::caution
+:::caution[Important]
 Each version of **`openrag`** ships with a specific compatible commit of [indexer-ui](https://github.com/linagora/openrag-admin-ui). The above command is sufficient.
 In development mode, to fetch the latest version of `indexer-ui`, run:
 ```bash title="fetching the latest version of submodules..."

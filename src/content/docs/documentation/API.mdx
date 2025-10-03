@@ -1,5 +1,5 @@
 ---
-title: API
+title: 🌟 API Documentation Overview
 description: Use the FastAPI RAG Backend API for document-based question answering.
 ---
 
@@ -241,14 +241,10 @@ For indexing multiple files programmatically, you can use this script [`data_ind
 
 ### OpenAI Client Integration
 
-For detailed examples of using OpenAI clients with this API, see the [`openai_compatibility_guide.ipynb`](./utility/openai_compatibility_guide.ipynb) notebook in the [`📁 utility`](./utility/) folder or simply use **`IndexerUI`**.
-
-#### Example OpenAI Client Usage
-
 ```python {9-10}
 from openai import OpenAI, AsyncOpenAI
 
-api_base_url = "http://localhost:8080" # fastapi base url 
+api_base_url = "http://localhost:8080" # fastapi base url of 'openrag'
 base_url = f"{api_base_url}/v1"
 
 auth_key = ... # your api authentification key AUTH_TOKEN in your .env. Is authentification is disabled, use a placeholder like 'sk-1234'

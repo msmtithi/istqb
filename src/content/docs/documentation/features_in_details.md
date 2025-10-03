@@ -1,5 +1,5 @@
 ---
-title: ✨ Features
+title: ✨ Key Features
 ---
 
 ### 📁 Rich File Format Support

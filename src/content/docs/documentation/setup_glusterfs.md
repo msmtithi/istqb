@@ -2,7 +2,7 @@
 title: GlusterFS
 ---
 
-# 🪵 GlusterFS Setup for Shared Storage (Ray Cluster)
+## 🪵 GlusterFS Setup for Shared Storage (Ray Cluster)
 
 In a Ray distributed setup, **all worker nodes need access to certain shared resources** used by the application.  
 This includes:
@@ -66,7 +66,7 @@ gluster peer status
 
 On **each node**, run:
 
-```bash
+```bash title="create brick directories on each node"
 sudo mkdir -p /gluster/bricks/ray_mount
 ```
 
