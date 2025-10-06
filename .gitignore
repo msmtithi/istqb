@@ -67,3 +67,6 @@ services/*
 *.json
 *.csv
 *.pkl
+
+#helm
+charts/openrag-stack/charts/*.tgz
