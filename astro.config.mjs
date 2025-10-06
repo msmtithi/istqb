@@ -5,16 +5,17 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
+  srcDir: './docs',
   integrations: [
       starlight({
           title: 'Docs',
           customCss:[
-            './src/styles/global.css',
-            './src/styles/custom.css',
+            './docs/styles/global.css',
+            './docs/styles/custom.css',
             '@fontsource-variable/space-grotesk',
           ],
           logo: {
-              src: './src/assets/OpenRAG-title.svg',  
+              src: './docs/assets/OpenRAG-title.svg',  
           },
           editLink:{
               baseUrl: 'https://github.com/linagora/openrag/edit/main',
