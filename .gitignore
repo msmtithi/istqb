@@ -70,3 +70,8 @@ services/*
 
 #helm
 charts/openrag-stack/charts/*.tgz
+
+# Astro / Starlight
+.astro/
+dist/
+node_modules/
