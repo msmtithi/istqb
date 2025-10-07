@@ -228,19 +228,21 @@ class RecursiveSplitter(BaseChunker):
         filtered_chunks = []
         prev_page_num = 1
         for chunk, chunk_w_context in zip(chunks, chunks_w_context):
-            if len(chunk.strip()) > 0:  # filter out empty chunks
-                page_info = self._get_chunk_page_info(
-                    chunk_str=chunk, previous_page=prev_page_num
+            if len(chunk.strip()) < 0:  # skip empty chunks
+                continue
+
+            page_info = self._get_chunk_page_info(
+                chunk_str=chunk, previous_page=prev_page_num
+            )
+            start_page = page_info["start_page"]
+            end_page = page_info["end_page"]
+            prev_page_num = end_page
+            filtered_chunks.append(
+                Document(
+                    page_content=chunk_w_context,
+                    metadata={**metadata, "page": start_page},
                 )
-                start_page = page_info["start_page"]
-                end_page = page_info["end_page"]
-                prev_page_num = end_page
-                filtered_chunks.append(
-                    Document(
-                        page_content=chunk_w_context,
-                        metadata={**metadata, "page": start_page},
-                    )
-                )
+            )
         log.info("Document chunking completed")
         return filtered_chunks
 
@@ -343,19 +345,21 @@ class SemanticSplitter(BaseChunker):
         filtered_chunks = []
         prev_page_num = 1
         for chunk, chunk_w_context in zip(chunks, chunks_w_context):
-            if len(chunk.strip()) > 0:
-                page_info = self._get_chunk_page_info(
-                    chunk_str=chunk, previous_page=prev_page_num
+            if len(chunk.strip()) > 0:  # skip empty chunks
+                continue
+
+            page_info = self._get_chunk_page_info(
+                chunk_str=chunk, previous_page=prev_page_num
+            )
+            start_page = page_info["start_page"]
+            end_page = page_info["end_page"]
+            prev_page_num = end_page
+            filtered_chunks.append(
+                Document(
+                    page_content=chunk_w_context,
+                    metadata={**metadata, "page": start_page},
                 )
-                start_page = page_info["start_page"]
-                end_page = page_info["end_page"]
-                prev_page_num = end_page
-                filtered_chunks.append(
-                    Document(
-                        page_content=chunk_w_context,
-                        metadata={**metadata, "page": start_page},
-                    )
-                )
+            )
         log.info("Document chunking completed")
         return filtered_chunks
 
@@ -446,19 +450,21 @@ class MarkDownSplitter(BaseChunker):
         filtered_chunks = []
         prev_page_num = 1
         for chunk, chunk_w_context in zip(chunks, chunks_w_context):
-            if len(chunk.strip()) > 0:
-                page_info = self._get_chunk_page_info(
-                    chunk_str=chunk, previous_page=prev_page_num
+            if len(chunk.strip()) < 0:  # skip empty chunks
+                continue
+
+            page_info = self._get_chunk_page_info(
+                chunk_str=chunk, previous_page=prev_page_num
+            )
+            start_page = page_info["start_page"]
+            end_page = page_info["end_page"]
+            prev_page_num = end_page
+            filtered_chunks.append(
+                Document(
+                    page_content=chunk_w_context,
+                    metadata={**metadata, "page": start_page},
                 )
-                start_page = page_info["start_page"]
-                end_page = page_info["end_page"]
-                prev_page_num = end_page
-                filtered_chunks.append(
-                    Document(
-                        page_content=chunk_w_context,
-                        metadata={**metadata, "page": start_page},
-                    )
-                )
+            )
         log.info("Document chunking completed")
         return filtered_chunks
 
