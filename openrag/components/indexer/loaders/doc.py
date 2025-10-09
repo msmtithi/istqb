@@ -1,8 +1,12 @@
 import os
 import tempfile
+
 from spire.doc import Document, FileFormat
+
 from .base import BaseLoader
 from .markItdown import MarkItDownLoader
+
+os.environ["DOTNET_SYSTEM_GLOBALIZATION_INVARIANT"] = "1"  # Disable Globalization
 
 
 class DocLoader(BaseLoader):
@@ -22,16 +26,6 @@ class DocLoader(BaseLoader):
         result_string = await self.MDLoader.aload_document(
             file_path, metadata, save_markdown
         )
-        os.remove(file_path)
-        document.Close()
-        return result_string
-
-    async def parse(self, file_path):
-        document = Document()
-        document.LoadFromFile(str(file_path))
-        # file_path = "converted/sample.docx"
-        document.SaveToFile(file_path, FileFormat.Docx2016)
-        result_string = await self.MDLoader.parse(file_path)
         os.remove(file_path)
         document.Close()
         return result_string
