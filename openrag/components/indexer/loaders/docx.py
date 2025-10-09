@@ -23,7 +23,7 @@ def convert_to_png_image(image: Image.Image) -> Image.Image:
     return png_image
 
 
-class MarkItDownLoader(BaseLoader):
+class DocxLoader(BaseLoader):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.converter = MarkItDown()

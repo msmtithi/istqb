@@ -4,7 +4,7 @@ import tempfile
 from spire.doc import Document, FileFormat
 
 from .base import BaseLoader
-from .markItdown import MarkItDownLoader
+from .docx import DocxLoader
 
 os.environ["DOTNET_SYSTEM_GLOBALIZATION_INVARIANT"] = "1"  # Disable Globalization
 
@@ -12,7 +12,7 @@ os.environ["DOTNET_SYSTEM_GLOBALIZATION_INVARIANT"] = "1"  # Disable Globalizati
 class DocLoader(BaseLoader):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.MDLoader = MarkItDownLoader(**kwargs)
+        self.MDLoader = DocxLoader(**kwargs)
 
     async def aload_document(self, file_path, metadata, save_markdown=False):
         """Here we convert the document to docx format, save it in local and then use the MarkItDownLoader
