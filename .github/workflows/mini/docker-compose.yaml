@@ -30,7 +30,7 @@ x-vllm: &vllm_template
     default:
       aliases:
         - vllm
-  #restart: always  # Better to fail in the CI context
+  restart: none  # Better to fail in the CI context
   environment:
     - HUGGING_FACE_HUB_TOKEN
   ipc: "host"
