@@ -10,7 +10,7 @@ do
     echo "Container '$NAME' is running but not helthy yet ..."
   else
     echo "Container '$NAME' has stopped or was never started."
-    break
+    exit 1
   fi
 
   echo "Waiting for ${NAME} to start at ${ADDR}:${PORT}"
