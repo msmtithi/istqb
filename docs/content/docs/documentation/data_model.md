@@ -1,5 +1,6 @@
-# 🗄️ Data Model Overview
-
+---
+title: 🗄️ Data Model Overview
+---
 This document describes the database schema used for managing users, partitions (spaces), files, and their relationships.  
 It is implemented using **SQLAlchemy ORM** with PostgreSQL as the backend.
 

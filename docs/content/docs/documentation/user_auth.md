@@ -1,4 +1,6 @@
-# 🔐 Authentication & Authorization Overview
+---
+title: 🔐 Authentication & Authorization Overview
+---
 
 This document explains how **user authentication** and **access control** work within the application.  
 It covers admin behavior, user tokens, and partition-level permissions.
