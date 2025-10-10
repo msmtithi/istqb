@@ -7,7 +7,7 @@ ADDR=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}
 while ! curl -fs "${ADDR}:${PORT}/health" >/dev/null 2>&1;
 do
   if docker ps --format '{{.Names}}' | grep -qw "$NAME"; then
-    echo "Container '$NAME' is running but not helthy yet ..."
+    echo "Container '$NAME' is running but not healthy yet ..."
   else
     echo "Container '$NAME' has stopped or was never started."
     exit 1
