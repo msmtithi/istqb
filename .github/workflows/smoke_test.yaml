@@ -121,7 +121,3 @@ jobs:
           sed -i 's/"simplewiki-500-2"/"simplewiki-500"/g' backup/simplewiki-500-2.openrag
           diff <(grep -Ev '^{"created": ' backup/simplewiki-500.openrag) <(grep -Ev '^{"created": ' backup/simplewiki-500-2.openrag)
 
-      -
-        name: Prnt
-        run: ls -lah && sleep 20s && docker container ls
-
