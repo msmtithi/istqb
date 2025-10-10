@@ -18,7 +18,7 @@ jobs:
   build-and-push-dev-image:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
       attestations: write
     steps:
