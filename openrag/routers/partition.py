@@ -1,11 +1,13 @@
+from typing import Literal
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from utils.dependencies import get_vectordb
 from utils.logger import get_logger
 
 from .utils import (
+    ROLE_HIERARCHY,
     current_user_or_admin_partitions_list,
     require_partition_owner,
     require_partition_viewer,
@@ -13,6 +15,8 @@ from .utils import (
 
 logger = get_logger()
 router = APIRouter()
+
+RoleType = Literal[*list(ROLE_HIERARCHY.keys())]
 
 
 def _quote_param_value(s: str) -> str:
@@ -164,7 +168,7 @@ async def list_partition_users(
 async def add_partition_user(
     partition: str,
     user_id: int,
-    role: str = "viewer",
+    role: RoleType = Query(default="viewer"),
     vectordb=Depends(get_vectordb),
     partition_owner=Depends(require_partition_owner),
 ):
@@ -203,7 +207,7 @@ async def remove_partition_user(
 async def update_partition_user_role(
     partition: str,
     user_id: int,
-    role: str,
+    role: RoleType,
     vectordb=Depends(get_vectordb),
     partition_owner=Depends(require_partition_owner),
 ):
