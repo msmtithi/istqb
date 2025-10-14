@@ -13,6 +13,10 @@ It covers admin behavior, user tokens, and partition-level permissions.
 - The presence of the environment variable **`AUTH_TOKEN`** activates authentication.  
 - If **`AUTH_TOKEN`** is **absent**, the middleware **bypasses all authentication checks**, allowing open access (useful for local or testing environments).
 
+:::danger[Attention !!!]
+**`SUPER_ADMIN_MODE=true`** must be activated if you want admin users to access all existing partitions, not just the admin's own partitions.
+:::
+
 ---
 
 ## **2. Admin Bootstrapping**
