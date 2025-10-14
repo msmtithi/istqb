@@ -139,9 +139,6 @@ async def require_partitions_viewer(
     user=Depends(current_user),
     user_partitions=Depends(current_user_partitions),
 ):
-    from utils.logger import get_logger
-
-    logger = get_logger()
     if SUPER_ADMIN_MODE and user.get("is_admin"):
         return user
     if isinstance(partitions, list) and len(partitions) == 1 and partitions[0] == "all":
