@@ -99,12 +99,11 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    external_ref = Column(String, unique=True, nullable=True)
-    email = Column(String, unique=True, nullable=True, index=True)
+    external_ref = Column(String, unique=True, nullable=True, index=True)
     display_name = Column(String, nullable=True)
     token = Column(String, unique=True, nullable=True, index=True)
     is_admin = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.now, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 
     memberships = relationship(
         "PartitionMembership", back_populates="user", cascade="all, delete-orphan"
@@ -168,7 +167,6 @@ class PartitionFileManager:
             admin = s.query(User).filter_by(token=hashed_token).first()
             if not admin:
                 admin = User(
-                    email="admin@example.com",
                     display_name="Admin",
                     token=hashed_token,
                     is_admin=True,
@@ -338,7 +336,6 @@ class PartitionFileManager:
 
     def create_user(
         self,
-        email: Optional[str] = None,
         display_name: Optional[str] = None,
         external_ref: Optional[str] = None,
         is_admin: bool = False,
@@ -349,7 +346,6 @@ class PartitionFileManager:
             hashed_token = self.hash_token(token)
 
             user = User(
-                email=email,
                 display_name=display_name,
                 external_ref=external_ref,
                 token=hashed_token,
@@ -361,8 +357,8 @@ class PartitionFileManager:
 
             return {
                 "id": user.id,
-                "email": user.email,
                 "display_name": user.display_name,
+                "external_ref": user.external_ref,
                 "token": token,
                 "is_admin": user.is_admin,
             }
@@ -373,7 +369,6 @@ class PartitionFileManager:
             return [
                 {
                     "id": u.id,
-                    "email": u.email,
                     "display_name": u.display_name,
                     "external_ref": u.external_ref,
                     "is_admin": u.is_admin,
@@ -400,8 +395,8 @@ class PartitionFileManager:
 
             return {
                 "id": user.id,
-                "email": user.email,
                 "display_name": user.display_name,
+                "external_ref": user.external_ref,
                 "is_admin": user.is_admin,
                 "memberships": memberships,
             }
@@ -423,8 +418,8 @@ class PartitionFileManager:
 
             return {
                 "id": user.id,
-                "email": user.email,
                 "display_name": user.display_name,
+                "external_ref": user.external_ref,
                 "is_admin": user.is_admin,
                 "memberships": memberships,
             }
@@ -449,8 +444,8 @@ class PartitionFileManager:
 
             return {
                 "id": user.id,
-                "email": user.email,
                 "display_name": user.display_name,
+                "external_ref": user.external_ref,
                 "token": new_token,
                 "is_admin": user.is_admin,
             }

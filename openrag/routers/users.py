@@ -18,7 +18,6 @@ async def list_users(vectordb=Depends(get_vectordb), admin_user=Depends(require_
 
 @router.post("/")
 async def create_user(
-    email: str | None = None,
     display_name: str | None = None,
     external_ref: str | None = None,
     is_admin: bool = False,
@@ -29,7 +28,6 @@ async def create_user(
     Create a new user and generate a token.
     """
     user = await vectordb.create_user.remote(
-        email=email,
         display_name=display_name,
         external_ref=external_ref,
         is_admin=is_admin,

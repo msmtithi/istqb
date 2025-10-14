@@ -816,13 +816,12 @@ class MilvusDB(BaseVectorDB):
 
     async def create_user(
         self,
-        email: str | None = None,
         display_name: str | None = None,
         external_ref: str | None = None,
         is_admin: bool = False,
     ):
         return self.partition_file_manager.create_user(
-            email, display_name, external_ref, is_admin
+            display_name, external_ref, is_admin
         )
 
     async def get_user(self, user_id: int):
