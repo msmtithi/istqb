@@ -13,8 +13,11 @@ Chainlit's password-based authentication is now integrated with the [User Model]
 <Image src={myImage} alt="RAG Architecture" width={600} height={350} />
 
 :::note
-The password when authenticating is the generated **OpenRag `api key`** when the user is created.
-The email is the email provided when the user is created.
+**Authentication credentials:**
+- **Password**: Your generated OpenRAG `API key` 
+- **Email**: Any non-empty value (required by Chainlit interface but not validated by the backend)
+
+The system only verifies the API key validity during authentication.
 :::
 
 

@@ -71,8 +71,6 @@ if AUTH_TOKEN:
                 )
                 response.raise_for_status()  # raises exception for 4xx/5xx responses
                 data = response.json()
-                if username != data.get("email"):
-                    return None
 
             return cl.User(
                 identifier=data.get("display_name", "user"),
