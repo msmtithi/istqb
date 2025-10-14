@@ -56,6 +56,10 @@ def current_user_or_admin_partitions_list(request: Request):
     return [p["partition"] for p in current_user_or_admin_partitions(request)]
 
 
+def partitions_with_details(request: Request):
+    return current_user_or_admin_partitions(request)
+
+
 def request_partition(request: Request):
     """Return the partition from path params"""
     return request.path_params.get("partition", None)

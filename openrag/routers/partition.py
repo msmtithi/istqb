@@ -8,7 +8,7 @@ from utils.logger import get_logger
 
 from .utils import (
     ROLE_HIERARCHY,
-    current_user_or_admin_partitions_list,
+    partitions_with_details,
     require_partition_owner,
     require_partition_viewer,
 )
@@ -26,7 +26,7 @@ def _quote_param_value(s: str) -> str:
 @router.get("/")
 async def list_existant_partitions(
     vectordb=Depends(get_vectordb),
-    partitions=Depends(current_user_or_admin_partitions_list),
+    partitions=Depends(partitions_with_details),
 ):
     if partitions == ["all"]:
         partitions = await vectordb.list_partitions.remote()
