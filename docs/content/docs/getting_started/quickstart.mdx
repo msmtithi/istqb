@@ -11,7 +11,7 @@ OpenRAG is an open source Retrieval Augmented Generation (RAG) solution. This gu
 ### Prerequisites
 - [Docker](https://www.docker.com/get-started) and **Docker Compose**
 - Your hardware should meet these specifications:
-  - **CPU deployment**: Minimum **13 GiB** RAM for light PDF parsers (**`PyMuPDF4LLMLoader`, `PyMuPDFLoader`**), or **23 GiB** RAM for heavier parsers like **`MarkerLoader`** (refer to [this section](/getting_started/environment_setup/#3-file-parser-configuration) for details)
+  - **CPU deployment**: Minimum **13 GiB** RAM for light PDF parsers (**`PyMuPDF4LLMLoader`, `PyMuPDFLoader`**), or **23 GiB** RAM for heavier parsers like **`MarkerLoader`** (refer to [this section](/getting_started/quickstart/#3-file-parser-configuration) for details)
   - **GPU deployment**: **16 GB** GPU memory recommended (for systems with separate CPU and GPU memory)
 
 ### Installation and Configuration
@@ -42,13 +42,13 @@ For **`CPU-only deployments`** or lightweight testing scenarios, you can conside
 These alternative loaders have limitations - they cannot process non-searchable (image-based) PDFs and do not extract or handle embedded images.
 :::
 
-#### 4. For Local Deployment
+#### Deployment
 :::tip[Setting up the Indexer UI]
 In case **`Indexer UI` (A Web interface for intuitive document ingestion, indexing, and management.)** is not configured already in your `.env`, follow this dedicated guide:
 ➡ [Deploy with Indexer UI](/documentation/setup_indexerui/)
 :::
 
-* **Simple and quick** launch for testing
+##### `Simple and quick` launch for testing
   :::info
   [OpenRAG repository](https://github.com/linagora/openrag) contains a ready-to-use `docker-compose.yml` file in the **`quick_start` folder**. This setup is ideal for local testing and quick deployments.
   <FileTree>
@@ -121,8 +121,9 @@ In case **`Indexer UI` (A Web interface for intuitive document ingestion, indexi
   </Tabs>
 
 
+##### Development Environment
 
-* **Development Environment**: For development builds, use the **`--build`** flag to rebuild images:
+For development builds, use the **`--build`** flag to rebuild images:
   Execute these commands from the project root directory or the cloned repository:
 
   <FileTree>
