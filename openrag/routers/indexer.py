@@ -281,7 +281,7 @@ async def copy_file_between_partitions(
     await indexer.copy_file.remote(
         file_id=source_file_id, metadata=metadata, partition=source_partition, user=user
     )
-    return JSONResponse(status_code=status.HTTP_201_CREATED)
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": "File copied successfully."})
 
 
 @router.get("/task/{task_id}")
