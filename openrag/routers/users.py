@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Request, Response, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from utils.dependencies import get_vectordb
 from utils.logger import get_logger
@@ -63,6 +63,10 @@ async def delete_user(
     """
     Delete a user.
     """
+    if user_id == 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete default admin user."
+        )
     await vectordb.delete_user.remote(user_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
