@@ -8,7 +8,7 @@ This project uses a [dockerized fork](https://github.com/Chainlit/chainlit-datal
 In OpenRAG, one can activate **`Chainlit data layer`** following these steps:
 
 ### Step 1: Set up authentication
-In fact, chainlit authentication is necessary for data persistency. Set chainlit authentication if not already done (refer to the [chainlit auth guide](./setup_chainlit_ui_auth.md))
+In fact, chainlit authentication is necessary for data persistency. Set chainlit authentication if not already done (refer to the [chainlit auth guide](/documentation/setup_chainlit_ui_auth))
 
 ### Step 2: Add the following variables
 To deploy the Chainlit data layer service, add the following variable:
@@ -28,7 +28,7 @@ Chainlit datalayer is cloud-compatible, and the same applies for local data pers
 * Variables for the postgres data
 
 :::tip{icon="heart"}
-Knowing that OpenRAG already has a running postgres service (**`rdb`**) (refer to the [docker-compose.yaml](/docker-compose.yaml) file), there is no need to deploy another postgres service. In that case, comment out the postgres service definition in the [compose.yaml](/extern/chainlit-datalayer/compose.yaml) file and add the following variable to your .env
+Knowing that OpenRAG already has a running postgres service (**`rdb`**) (refer to the [docker-compose.yaml](../docker-compose.yaml) file), there is no need to deploy another postgres service. In that case, comment out the postgres service definition in the [compose.yaml file](../extern/chainlit-datalayer/compose.yaml) and add the following variable to your .env
 :::
 
 ```bash
