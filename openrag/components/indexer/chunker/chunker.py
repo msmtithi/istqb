@@ -86,9 +86,9 @@ class BaseChunker(ABC):
         try:
             tasks = []
             for i in range(len(chunks)):
-                prev_chunk = chunks[i - 1] if i > 0 else ""
+                prev_chunk = "---\n".join(chunks[max(0, i - 2) : i]) if i > 0 else ""
                 curr_chunk = chunks[i]
-                first_chunks = "\n".join(chunks[:4])
+                first_chunks = "---\n".join(chunks[:2])  # first two chunks
 
                 tasks.append(
                     self._generate_context(
