@@ -5,8 +5,7 @@ include:
   - ${TRANSCRIBER_COMPOSE:-extern/dummy.yaml}
 
 x-openrag: &openrag_template
-  image: ghcr.io/linagora/openrag:dev-latest
-  # image: linagoraai/openrag:latest
+  image: linagoraai/openrag:latest
   build:
     context: .
     dockerfile: Dockerfile
@@ -60,7 +59,7 @@ x-vllm: &vllm_template
 services:
   # OpenRAG Indexer UI
   indexer-ui:
-    image: linagoraai/indexer-ui:v1.1
+    image: linagoraai/indexer-ui:latest
     build:
       context: ./extern/indexer-ui
       dockerfile: Dockerfile
