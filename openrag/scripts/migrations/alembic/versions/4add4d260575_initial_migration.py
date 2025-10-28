@@ -12,12 +12,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
 
-# revision identifiers, used by Alembic.
-revision: str = "4add4d260575"
-down_revision: Union[str, Sequence[str], None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
-
 
 def table_exists(table_name: str) -> bool:
     """Check if a table exists in the database."""
@@ -32,6 +26,13 @@ def index_exists(index_name: str, table_name: str) -> bool:
     inspector = inspect(bind)
     indexes = inspector.get_indexes(table_name)
     return any(idx["name"] == index_name for idx in indexes)
+
+
+# revision identifiers, used by Alembic.
+revision: str = "4add4d260575"
+down_revision: Union[str, Sequence[str], None] = None
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
