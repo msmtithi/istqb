@@ -125,6 +125,15 @@ loader:
   marker_min_processes: ${oc.decode:${oc.env:MARKER_MIN_PROCESSES, 1}}
   marker_num_gpus: ${oc.decode:${oc.env:MARKER_NUM_GPUS, 0.01}}
   marker_timeout: ${oc.decode:${oc.env:MARKER_TIMEOUT, 3600}}
+  openai:
+    base_url: ${oc.env:OPENAI_LOADER_BASE_URL, http://openai:8000/v1}
+    api_key: ${oc.env:OPENAI_LOADER_API_KEY, EMPTY}
+    model: ${oc.env:OPENAI_LOADER_MODEL, dotsocr-model}
+    temperature: ${oc.decode:${oc.env:OPENAI_LOADER_TEMPERATURE, 0.2}}
+    timeout: ${oc.decode:${oc.env:OPENAI_LOADER_TIMEOUT, 180}}
+    max_retries: ${oc.decode:${oc.env:OPENAI_LOADER_MAX_RETRIES, 2}}
+    top_p: ${oc.decode:${oc.env:OPENAI_LOADER_TOP_P, 0.9}}
+    concurrency_limit: ${oc.decode:${oc.env:OPENAI_LOADER_CONCURRENCY_LIMIT, 20}}
 
 ray:
   num_gpus: ${oc.decode:${oc.env:RAY_NUM_GPUS, 0.01}}
