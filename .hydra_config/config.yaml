@@ -125,6 +125,14 @@ loader:
   marker_min_processes: ${oc.decode:${oc.env:MARKER_MIN_PROCESSES, 1}}
   marker_num_gpus: ${oc.decode:${oc.env:MARKER_NUM_GPUS, 0.01}}
   marker_timeout: ${oc.decode:${oc.env:MARKER_TIMEOUT, 3600}}
+  transcriber:
+    base_url: ${oc.env:TRANSCRIBER_BASE_URL, http://vllm:8000/v1}
+    api_key: ${oc.env:TRANSCRIBER_API_KEY, EMPTY}
+    model_name: ${oc.env:TRANSCRIBER_MODEL_NAME, whisper-large-v3-turbo}
+    max_chunk_ms: ${oc.decode:${oc.env:TRANSCRIBER_MAX_CHUNK_MS, 30000}}
+    silence_thresh_db: ${oc.decode:${oc.env:TRANSCRIBER_SILENCE_THRESH_DB, -40}}
+    min_silence_len_ms: ${oc.decode:${oc.env:TRANSCRIBER_MIN_SILENCE_LEN_MS, 500}}
+    max_concurrent_chunks: ${oc.decode:${oc.env:TRANSCRIBER_MAX_CONCURRENT_CHUNKS, 20}}
   openai:
     base_url: ${oc.env:OPENAI_LOADER_BASE_URL, http://openai:8000/v1}
     api_key: ${oc.env:OPENAI_LOADER_API_KEY, EMPTY}
