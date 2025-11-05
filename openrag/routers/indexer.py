@@ -50,7 +50,11 @@ router = APIRouter()
 
 @router.get(
     "/supported/types",
-    description="Returns the list of supported file extensions and MIME types.",
+    description="""Get supported file types for indexing.
+
+**Response:**
+Returns a list of supported file extensions and MIME types that can be indexed by the system.
+""",
 )
 async def get_supported_types():
     """
@@ -70,30 +74,30 @@ async def get_supported_types():
 @router.post(
     "/partition/{partition}/file/{file_id}",
     description="""Upload and index a new file.
-    
-    **File Type Support:**
-    - Supports standard file extensions listed in `/supported/types`
-    - For unsupported extensions, specify `mimetype` in metadata
-    
-    **Metadata Format:**
-    JSON string containing file metadata. Example:
-    ```json
-    {
-        "mimetype": "text/plain",
-        "author": "John Doe",
-        ...
-    }
-    ```
-    
-    **Common Mimetypes:**
-    - `text/plain` - Plain text files
-    - `text/markdown` - Markdown files  
-    - `application/pdf` - PDF documents
-    - `message/rfc822` - Email files
-    
-    **Response:**
-    Returns 201 Created with a task status URL for tracking indexing progress.
-    """,
+
+**File Type Support:**
+- Supports standard file extensions listed in `/supported/types`
+- For unsupported extensions, specify `mimetype` in metadata
+
+**Metadata Format:**
+JSON string containing file metadata. Example:
+```json
+{
+    "mimetype": "text/plain",
+    "author": "John Doe",
+    ...
+}
+```
+
+**Common Mimetypes:**
+- `text/plain` - Plain text files
+- `text/markdown` - Markdown files  
+- `application/pdf` - PDF documents
+- `message/rfc822` - Email files
+
+**Response:**
+Returns 201 Created with a task status URL for tracking indexing progress.
+""",
 )
 async def add_file(
     request: Request,
@@ -157,7 +161,17 @@ async def add_file(
     )
 
 
-@router.delete("/partition/{partition}/file/{file_id}")
+@router.delete("/partition/{partition}/file/{file_id}",
+    description="""Delete a file from a partition.
+
+**Parameters:**
+- `partition`: The partition name
+- `file_id`: The unique identifier of the file to delete
+
+**Response:**
+Returns 204 No Content on successful deletion.
+""",
+)
 async def delete_file(
     partition: str,
     file_id: str,
@@ -174,7 +188,34 @@ async def delete_file(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put("/partition/{partition}/file/{file_id}")
+@router.put("/partition/{partition}/file/{file_id}",
+    description="""Update an existing file by replacing it.
+
+**Parameters:**
+- `partition`: The partition name
+- `file_id`: The unique identifier of the file to replace
+- `file`: New file to upload
+- `metadata`: Optional metadata as JSON string
+
+**Behavior:**
+- Deletes the existing file
+- Uploads and indexes the new file
+- Preserves the file_id
+
+**Metadata Format:**
+JSON string containing file metadata. Example:
+```json
+{
+    "mimetype": "text/plain",
+    "author": "John Doe",
+    ...
+}
+```
+
+**Response:**
+Returns 202 Accepted with a task status URL for tracking indexing progress.
+""",
+)
 async def put_file(
     request: Request,
     partition: str,
@@ -236,7 +277,23 @@ async def put_file(
     )
 
 
-@router.patch("/partition/{partition}/file/{file_id}")
+@router.patch("/partition/{partition}/file/{file_id}",
+    description="""Update file metadata without re-uploading the file.
+
+**Parameters:**
+- `partition`: The partition name
+- `file_id`: The unique identifier of the file
+- `metadata`: Metadata fields to update as JSON string
+
+**Behavior:**
+- Updates only the specified metadata fields
+- Does not require file re-upload
+- Can change the file's partition if user has access
+
+**Response:**
+Returns 200 OK with a success message.
+""",
+)
 async def patch_file(
     partition: str,
     file_id: str = Depends(validate_file_id),
@@ -263,7 +320,24 @@ async def patch_file(
     )
 
 
-@router.post("/partition/{partition}/file/{file_id}/copy")
+@router.post("/partition/{partition}/file/{file_id}/copy",
+    description="""Copy a file from one partition to another.
+
+**Parameters:**
+- `partition`: Destination partition name
+- `file_id`: New file ID in destination partition
+- `source_partition`: Source partition name (form data)
+- `source_file_id`: Source file ID (form data)
+- `metadata`: Optional metadata to override as JSON string
+
+**Permissions:**
+- Requires viewer access to source partition
+- Requires editor access to destination partition
+
+**Response:**
+Returns 201 Created on successful copy.
+""",
+)
 async def copy_file_between_partitions(
     partition: str,
     file_id: str = Depends(validate_file_id),
@@ -290,7 +364,20 @@ async def copy_file_between_partitions(
     return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": "File copied successfully."})
 
 
-@router.get("/task/{task_id}")
+@router.get("/task/{task_id}",
+    description="""Get the status of an indexing task.
+
+**Parameters:**
+- `task_id`: The unique task identifier returned when uploading a file
+
+**Response:**
+Returns task status information including:
+- `task_id`: The task identifier
+- `task_state`: Current state (QUEUED, RUNNING, SUCCESS, FAILED)
+- `details`: Additional task details
+- `error_url`: URL to get error details (if task failed)
+""",
+)
 async def get_task_status(
     request: Request,
     task_id: str,
@@ -318,7 +405,20 @@ async def get_task_status(
     return JSONResponse(status_code=status.HTTP_200_OK, content=content)
 
 
-@router.get("/task/{task_id}/error")
+@router.get("/task/{task_id}/error",
+    description="""Get error details for a failed task.
+
+**Parameters:**
+- `task_id`: The unique task identifier
+
+**Response:**
+Returns error information including:
+- `task_id`: The task identifier
+- `traceback`: Error traceback as an array of lines
+
+**Note:** Only available if task state is FAILED.
+""",
+)
 async def get_task_error(
     task_id: str,
     task_state_manager=Depends(get_task_state_manager),
@@ -341,7 +441,21 @@ async def get_task_error(
         )
 
 
-@router.get("/task/{task_id}/logs")
+@router.get("/task/{task_id}/logs",
+    description="""Get logs for a specific task.
+
+**Parameters:**
+- `task_id`: The unique task identifier
+- `max_lines`: Maximum number of log lines to return (default: 100)
+
+**Response:**
+Returns task logs including:
+- `task_id`: The task identifier
+- `logs`: Array of log entries with timestamps and messages
+
+**Note:** Logs are returned in chronological order (oldest first).
+""",
+)
 async def get_task_logs(
     task_id: str, max_lines: int = 100, task_details=Depends(require_task_owner)
 ):
@@ -377,7 +491,22 @@ async def get_task_logs(
         raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")
 
 
-@router.delete("/task/{task_id}", name="cancel_task")
+@router.delete("/task/{task_id}", 
+    name="cancel_task",
+    description="""Cancel a running or queued task.
+
+**Parameters:**
+- `task_id`: The unique task identifier
+
+**Behavior:**
+- Sends cancellation signal to the task
+- Recursively cancels all subtasks
+- Does not guarantee immediate cancellation
+
+**Response:**
+Returns confirmation message that cancellation signal was sent.
+""",
+)
 async def cancel_task(
     task_id: str,
     task_state_manager=Depends(get_task_state_manager),

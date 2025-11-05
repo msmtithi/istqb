@@ -30,7 +30,23 @@ actor_creation_map = {
 }
 
 
-@router.get("/", name="list_ray_actors")
+@router.get("/", name="list_ray_actors",
+    description="""List all Ray actors and their current status.
+
+**Permissions:**
+- Requires admin role
+
+**Response:**
+Returns list of all Ray actors with:
+- `actor_id`: Unique actor identifier
+- `name`: Actor name
+- `class_name`: Actor class type
+- `state`: Current state (ALIVE, DEAD, etc.)
+- `namespace`: Ray namespace
+
+**Note:** This shows the internal distributed computing actors used by OpenRAG.
+""",
+)
 async def list_ray_actors():
     """List all known Ray actors and their status."""
     try:
@@ -53,7 +69,35 @@ async def list_ray_actors():
         )
 
 
-@router.post("/{actor_name}/restart", name="restart_ray_actor")
+@router.post("/{actor_name}/restart", name="restart_ray_actor",
+    description="""Restart a specific Ray actor.
+
+**Parameters:**
+- `actor_name`: Name of the actor to restart
+
+**Permissions:**
+- Requires admin role
+
+**Available Actors:**
+- `TaskStateManager`: Manages task states
+- `MarkerPool`: PDF processing actor pool
+- `SerializerQueue`: Document serialization queue
+- `Indexer`: Document indexing coordinator
+- `Vectordb`: Vector database interface
+- `llmSemaphore`: LLM request semaphore
+- `vlmSemaphore`: Vision LM request semaphore
+
+**Behavior:**
+1. Kills the existing actor instance
+2. Creates a new actor instance
+3. Preserves actor configuration
+
+**Response:**
+Returns restart confirmation with new actor ID.
+
+**Warning:** Restarting actors may interrupt ongoing operations.
+""",
+)
 async def restart_actor(
     actor_name: str,
 ):

@@ -11,7 +11,35 @@ logger = get_logger()
 router = APIRouter()
 
 
-@router.get("/{extract_id}")
+@router.get("/{extract_id}",
+    description="""Get a specific document chunk by its ID.
+
+**Parameters:**
+- `extract_id`: The unique chunk identifier (from search or list results)
+
+**Permissions:**
+- Requires access to the partition containing the chunk
+- Regular users: Only chunks from assigned partitions
+- Admins: Any chunk
+
+**Response:**
+Returns chunk details including:
+- `page_content`: The text content of the chunk
+- `metadata`: Chunk metadata including:
+  - `file_id`: Source file identifier
+  - `filename`: Original filename
+  - `partition`: Partition name
+  - `page`: Page number in source document
+  - `datetime`: Document date (if set)
+  - `modified_at`: File modification timestamp
+  - `created_at`: File creation timestamp
+  - `indexed_at`: Chunk indexing timestamp
+  - Additional custom metadata
+
+**Use Case:**
+View detailed content of a specific chunk from search results.
+""",
+)
 async def get_extract(
     request: Request,
     extract_id: str,

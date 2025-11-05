@@ -32,15 +32,21 @@ ragpipe = RagPipeline(config=config)
 @router.get(
     "/models",
     summary="OpenAI-compatible model listing endpoint",
-    description="""
-    OpenAI-compatible endpoint to list all available models.
-    
-    Returns a list of models that can be used with OpenRAG, including:
-    - All available partitions formatted as 'openrag-{partition_name}'
-    - A special 'openrag-all' model to query across all partitions
-    
-    The response format mimics the OpenAI models listing API for compatibility.
-    """,
+    description="""List available models in OpenAI-compatible format.
+
+**Available Models:**
+- `openrag-{partition_name}`: Query a specific partition
+- `openrag-all`: Query across all accessible partitions
+
+**Response Format:**
+Returns models in OpenAI-compatible format with:
+- `id`: Model identifier
+- `object`: Always "model"
+- `created`: Creation timestamp
+- `owned_by`: Always "OpenRAG"
+
+**Note:** Only partitions you have access to will be listed.
+""",
     response_description="A list of available models in OpenAI format",
 )
 async def list_models(
@@ -96,17 +102,32 @@ def __prepare_sources(request: Request, docs: list[Document]):
 @router.post(
     "/chat/completions",
     summary="OpenAI compatible chat completion endpoint using RAG",
-    description="""
-    OpenAI-compatible chat completion endpoint that leverages Retrieval-Augmented Generation (RAG).
-    
-    This endpoint accepts chat messages in OpenAI format and uses the specified model to generate
-    a completion. The model selection determines which document partition(s) will be queried:
-    - 'openrag-{partition_name}': Queries only the specified partition
-    - 'openrag-all': Queries across all available partitions
-    
-    Previous messages provide conversation context. The system enriches the prompt with relevant documents retrieved
-    from the vector database before sending to the LLM.
-    """,
+    description="""Generate chat completions with Retrieval-Augmented Generation (RAG).
+
+**Model Selection:**
+- `openrag-{partition_name}`: Query only the specified partition
+- `openrag-all`: Query across all available partitions
+
+**Request Format:**
+Accepts OpenAI-compatible chat completion requests with:
+- `messages`: Array of chat messages (last must be from user)
+- `model`: Model/partition to use
+- `stream`: Optional streaming response (true/false)
+- Standard OpenAI parameters (temperature, max_tokens, etc.)
+
+**RAG Process:**
+1. Extracts query from conversation
+2. Retrieves relevant documents from specified partition(s)
+3. Enriches prompt with document context
+4. Generates completion using LLM
+
+**Response:**
+Returns OpenAI-compatible response with additional `extra` field containing:
+- `sources`: Array of source documents with metadata and URLs
+
+**Streaming:**
+Set `stream: true` for Server-Sent Events (SSE) streaming responses.
+""",
 )
 async def openai_chat_completion(
     request2: Request,
@@ -192,17 +213,29 @@ async def openai_chat_completion(
 @router.post(
     "/completions",
     summary="OpenAI compatible completion endpoint using RAG",
-    description="""
-    OpenAI-compatible text completion endpoint that leverages Retrieval-Augmented Generation (RAG).
-    
-    This endpoint accepts a prompt in OpenAI format and uses the specified model to generate
-    a text completion. The model selection determines which document partition(s) will be queried:
-    - 'openrag-{partition_name}': Queries only the specified partition
-    - 'openrag-all': Queries across all available partitions
-    
-    The system enriches the prompt with relevant documents retrieved from the vector database
-    before sending to the LLM, allowing the completion to include information from your document store.
-    """,
+    description="""Generate text completions with Retrieval-Augmented Generation (RAG).
+
+**Model Selection:**
+- `openrag-{partition_name}`: Query only the specified partition
+- `openrag-all`: Query across all available partitions
+
+**Request Format:**
+Accepts OpenAI-compatible completion requests with:
+- `prompt`: Text prompt for completion
+- `model`: Model/partition to use
+- Standard OpenAI parameters (temperature, max_tokens, etc.)
+
+**RAG Process:**
+1. Retrieves relevant documents from specified partition(s)
+2. Enriches prompt with document context
+3. Generates completion using LLM
+
+**Response:**
+Returns OpenAI-compatible response with additional `extra` field containing:
+- `sources`: Array of source documents with metadata and URLs
+
+**Note:** Streaming is not supported for this endpoint.
+""",
 )
 async def openai_completion(
     request2: Request,
