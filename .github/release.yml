@@ -1,0 +1,38 @@
+changelog:
+  categories:
+    - title: 🚨 BREAKING CHANGE
+      labels:
+        - breaking-change
+    - title: 🚀 Features
+      labels:
+        - feat
+        - enhancement
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+    - title: 🔧 Tech
+      labels:
+        - chore
+        - refactor
+        - docs
+        - documentation
+        - test
+
+  exclude:
+    labels:
+      - skip-changelog
+    authors:
+      - github-actions
+      - github-actions[bot]
+
+  template: |
+    # 🚀 Release $NEXT_TAG
+
+    $CHANGES
+
+    ---
+
+    ### Contributors
+    $CONTRIBUTORS
+
