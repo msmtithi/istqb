@@ -27,7 +27,7 @@ semaphore:
   vlm_semaphore: ${oc.decode:${oc.env:VLM_SEMAPHORE, 10}}
 
 embedder:
-  type: huggingface
+  provider: openai
   model_name: ${oc.env:EMBEDDER_MODEL_NAME, jinaai/jina-embeddings-v3}
   base_url: ${oc.env:EMBEDDER_BASE_URL, http://vllm:8000/v1}
   api_key: ${oc.env:EMBEDDER_API_KEY, EMPTY}
@@ -79,6 +79,7 @@ prompts:
   query_contextualizer: query_contextualizer_tmpl.txt
   chunk_contextualizer: chunk_contextualizer_tmpl.txt
   image_describer: image_captioning_tmpl.txt
+  spoken_style_answer: spoken_style_answer_tmpl.txt
 
   # query templates for different retriever types
   hyde: hyde.txt

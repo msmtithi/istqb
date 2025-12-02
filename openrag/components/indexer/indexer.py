@@ -111,7 +111,7 @@ class Indexer:
             await task_state_manager.set_state.remote(task_id, "COMPLETED")
 
         except Exception as e:
-            log.exception("Task {task_id} failed in add_file")
+            log.exception(f"Task {task_id} failed in add_file")
             tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             await task_state_manager.set_state.remote(task_id, "FAILED")
             await task_state_manager.set_error.remote(task_id, tb)
